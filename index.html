@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comp Budget Lab — инструменты C&amp;B</title>
+<meta name="description" content="Три бесплатных инструмента для C&amp;B: стоимость выравнивания оплаты, план-факт ФОТ, пересмотр зарплат по матрице мерита. Работают в браузере, к каждому есть Excel-модель.">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f6f2; --card: #ffffff; --ink: #1d1f22; --muted: #5d636b;
+    --line: #dddad2; --accent: #1f5f8b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15171a; --card: #1e2125; --ink: #ecebe7; --muted: #a3a9b1;
+      --line: #33373d; --accent: #7fb6dd;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 20px 32px; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 12px; }
+  .lead { color: var(--muted); margin: 0 0 32px; }
+  .tool {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 20px 22px; margin-bottom: 16px;
+  }
+  .tool h2 { font-size: 20px; margin: 0 0 6px; }
+  .tool h2 a { color: var(--ink); text-decoration: none; }
+  .tool h2 a:hover { text-decoration: underline; }
+  .tool p { margin: 0 0 12px; }
+  .links { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 15px; }
+  .links a { color: var(--accent); }
+  footer {
+    max-width: 760px; margin: 0 auto; padding: 16px 20px 40px;
+    border-top: 1px solid var(--line); color: var(--muted); font-size: 14px;
+  }
+  footer a { color: inherit; }
+  @media (max-width: 480px) {
+    main { padding-top: 32px; }
+    h1 { font-size: 25px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Инструменты для C&amp;B</h1>
+  <p class="lead">Три инструмента: работают в браузере и не отправляют ваши данные. К каждому есть Excel-модель с живыми формулами, считающая то же самое.</p>
+
+  <section class="tool">
+    <h2><a href="merit-matrix-calculator/">Пересмотр зарплат: бюджет и результат</a></h2>
+    <p>Матрица мерита: кому сколько, во что пересмотр обойдётся в этом году и в бюджете следующего вместе со взносами, уложится ли мерит в целевой процент.</p>
+    <div class="links">
+      <a href="merit-matrix-calculator/">Открыть калькулятор</a>
+      <a href="merit-matrix-calculator/merit-model.xlsx">Excel-модель</a>
+      <a href="merit-matrix-calculator/sample-employees.csv">образец сотрудников</a>
+      <a href="merit-matrix-calculator/sample-salary-ranges.csv">образец вилок</a>
+    </div>
+  </section>
+
+  <section class="tool">
+    <h2><a href="budget-plan-fact/">План-факт ФОТ</a></h2>
+    <p>Сигнальный дашборд: где исполнение бюджета ФОТ расходится с планом сильнее порога и на сколько.</p>
+    <div class="links">
+      <a href="budget-plan-fact/">Открыть дашборд</a>
+      <a href="budget-plan-fact/budget-plan-fact-model.xlsx">Excel-модель</a>
+      <a href="budget-plan-fact/sample.csv">образец данных</a>
+    </div>
+  </section>
+
+  <section class="tool">
+    <h2><a href="pay-gap-calculator/">Стоимость выравнивания оплаты</a></h2>
+    <p>Сколько стоит закрыть необъяснённый разрыв в оплате мужчин и женщин и как эти деньги лягут на бюджет вместе со страховыми взносами.</p>
+    <div class="links">
+      <a href="pay-gap-calculator/">Открыть калькулятор</a>
+      <a href="pay-gap-calculator/pay-gap-model.xlsx">Excel-модель</a>
+      <a href="pay-gap-calculator/sample.csv">образец данных</a>
+    </div>
+  </section>
+</main>
+<footer>
+  Ольга Димитрова · <a href="https://www.linkedin.com/in/olga-dimitrova-04311742a/">LinkedIn</a> ·
+  <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> ·
+  Демо-данные во всех инструментах смоделированы.
+</footer>
+</body>
+</html>

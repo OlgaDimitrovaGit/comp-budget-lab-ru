@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+"""
+Embeds data and comment into the page, after checking the data. Called by
+lovable/build.py, which has already inlined the styles and the chart; the
+result is a single self-contained HTML file.
+
+The page has to open without an internet connection and make no network request
+of any kind: no fonts, no libraries, no analytics. So the styles and the chart
+script are inline, the palette is a :root block in the page, and the dataset is
+placed in a <script type="application/json"> inside the file itself.
+
+Updating the data does not go through this script: the CSV is loaded in the
+browser, recalculated in place, and the page hands back a new file just as
+self-contained as this one. The script is for the first build and for rebuilding
+after a change to the markup.
+"""
+import csv
+import json
+import os
+import sys
+import datetime
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+FACT_MONTHS = 8
+SIGNAL_THRESHOLD = 3.0   # % — the "problem" threshold, configurable on the page
+
+# Departments expected in the demo dataset. Department names are shown on the
+# page exactly as they appear in the CSV, so a reader's own file needs no
+# mapping; this set only pins down the demo data.
+DEPARTMENTS = {
+    "Разработка", "Продажи", "Операции", "Производство",
+    "Маркетинг", "Поддержка клиентов", "Юристы",
+}
+
+
+def read_rows():
+    with open(os.path.join(HERE, "budget-plan-fact.csv"), encoding="utf-8") as fh:
+        return list(csv.DictReader(fh))
+
+
+def read_comment():
+    path = os.path.join(HERE, "comment.txt")
+    if not os.path.exists(path):
+        return ""
+    return " ".join(open(path, encoding="utf-8").read().split())
+
+
+def verify(rows):
+    """Checks on the assembled data. Returns a list of violations."""
+    failures = []
+    f = lambda x: float(x) if x else 0.0
+
+    plan_year = sum(f(r["plan"]) for r in rows)
+    exp_year = sum(f(r["fact"]) if r["fact"] else f(r["forecast"]) for r in rows)
+    dev_year = (exp_year - plan_year) / plan_year * 100
+
+    p8 = sum(f(r["plan"]) for r in rows if int(r["month_no"]) <= FACT_MONTHS)
+    f8 = sum(f(r["fact"]) for r in rows if int(r["month_no"]) <= FACT_MONTHS)
+    dev8 = (f8 - p8) / p8 * 100
+
+    p4 = sum(f(r["plan"]) for r in rows if int(r["month_no"]) > FACT_MONTHS)
+    fc4 = sum(f(r["forecast"]) for r in rows if int(r["month_no"]) > FACT_MONTHS)
+    dev4 = (fc4 - p4) / p4 * 100
+
+    # 1. The year agrees with the generator's reference figures. Hard-coded on
+    # purpose: if the dataset is rebuilt differently, the page has to say so
+    # rather than quietly show different numbers.
+    REF_PLAN_YEAR = 521149441.63
+    REF_EXP_YEAR = 540659202.84
+    if abs(plan_year - REF_PLAN_YEAR) > 0.01:
+        failures.append(
+            f"annual plan {plan_year:,.2f} != reference {REF_PLAN_YEAR:,.2f}")
+    if abs(exp_year - REF_EXP_YEAR) > 0.01:
+        failures.append(
+            f"annual expected {exp_year:,.2f} != reference {REF_EXP_YEAR:,.2f}")
+
+    # 2. The signal fires: otherwise the dashboard has nothing to show.
+    if dev_year < SIGNAL_THRESHOLD:
+        failures.append(
+            f"year {dev_year:+.1f}% is below the {SIGNAL_THRESHOLD}% threshold - "
+            f"the page would show 'on track'")
+
+    # 3. The forecast continues the trend of the actuals: Sep-Dec deviates from
+    # plan by the same percentage as Jan-Aug (within half a point). A forecast
+    # that suddenly snaps back to plan would hide the overspend.
+    if abs(dev4 - dev8) > 0.5:
+        failures.append(
+            f"Sep-Dec {dev4:+.1f}% does not continue 8M {dev8:+.1f}%")
+
+    # 4. Completeness: 7 departments x 12 months, actuals exactly through August.
+    deps = {r["department"] for r in rows}
+    if deps != DEPARTMENTS:
+        failures.append(f"departments {sorted(deps)} != {sorted(DEPARTMENTS)}")
+    if len(rows) != len(deps) * 12:
+        failures.append(f"{len(rows)} rows, expected {len(deps) * 12}")
+    for r in rows:
+        m = int(r["month_no"])
+        if m <= FACT_MONTHS and not r["fact"]:
+            failures.append(
+                f"{r['department']} {r['month']}: actual is empty before September")
+        if m > FACT_MONTHS and not r["forecast"]:
+            failures.append(
+                f"{r['department']} {r['month']}: forecast is empty after August")
+
+    return failures, dev_year, dev8, dev4
+
+
+def build(template_name="template.html", out_name="dashboard.html"):
+    rows = read_rows()
+    failures, dev_year, dev8, dev4 = verify(rows)
+    if failures:
+        print(f"CHECKS FAILED: {len(failures)}")
+        for x in failures:
+            print(f"  FAIL: {x}")
+        sys.exit(1)
+
+    data = [
+        {
+            "d": r["department"],
+            "m": r["month"],
+            "n": int(r["month_no"]),
+            "p": round(float(r["plan"]), 2),
+            "f": round(float(r["fact"]), 2) if r["fact"] else None,
+            "c": round(float(r["forecast"]), 2) if r["forecast"] else None,
+        }
+        for r in rows
+    ]
+
+    payload = {
+        "rows": data,
+        "factMonths": FACT_MONTHS,
+        "threshold": SIGNAL_THRESHOLD,
+        "comment": read_comment(),
+        "commentDate": "31.08.2026",
+        "built": datetime.date.today().strftime("%d.%m.%Y"),
+    }
+
+    html = read_template(template_name)
+    # The bare template has no styles and no chart yet: those are inlined by
+    # lovable/build.py, which is the entry point.
+    if "/*LOVABLE_CSS*/" in html:
+        sys.exit("template has no styles inlined: run python build/lovable/build.py")
+    html = html.replace('"__DATA__"', json.dumps(payload, ensure_ascii=False))
+
+    out = os.path.join(HERE, out_name)
+    # newline="\n" is required: without it Windows turns every \n into \r\n, and
+    # the built file differs from one built on another machine by exactly the
+    # number of lines — from identical sources. That is how the md5 recorded in
+    # the project notes once drifted (63,125 bytes LF against 64,320 CRLF, a
+    # difference of 1,195 = the line count). A value that exists in two places
+    # has to match byte for byte, otherwise "rebuilds to the same md5" stops
+    # being a check.
+    with open(out, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(html)
+
+    print(f"Written: {out}")
+    print(f"Size: {len(html.encode('utf-8')) / 1024:.0f} KB")
+    print()
+    print(f"Year:     {dev_year:+.1f}%   {SIGNAL_THRESHOLD}% threshold - "
+          f"{'REACHED' if dev_year >= SIGNAL_THRESHOLD else 'not reached'}")
+    print(f"8M:       {dev8:+.1f}%")
+    print(f"Sep-Dec:  {dev4:+.1f}%")
+    print()
+    print("CHECKS: all 4 groups passed")
+    print()
+    print("Required next: open it in a browser, both themes, narrow screen.")
+
+
+def read_template(name="template.html"):
+    """The template lives in its own file rather than as a string in the code.
+
+    That way an editor highlights the HTML, and the markup does not drown in
+    quote escaping inside a Python string.
+    """
+    with open(os.path.join(HERE, name), encoding="utf-8") as fh:
+        return fh.read()
+
+
+if __name__ == "__main__":
+    # Template and output names are arguments so that alternative chart
+    # treatments are built by ONE verified calculation rather than a copy of the
+    # script: a copy drifts from the original silently, and then the variants
+    # are compared on accidentally different numbers instead of on presentation.
+    tpl = sys.argv[1] if len(sys.argv) > 1 else "template.html"
+    out = sys.argv[2] if len(sys.argv) > 2 else "dashboard.html"
+    build(tpl, out)
