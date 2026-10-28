@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Empty icon, so the browser does not request /favicon.ico. -->
+<link rel="icon" href="data:,">
+<title>План-факт ФОТ по подразделениям</title>
+<meta name="description" content="Бесплатный дашборд план-факт ФОТ: отклонение по подразделениям и месяцам, прогноз на год. Загрузите свой CSV — он не покидает браузер.">
+<meta name="author" content="Ольга Димитрова">
+<meta property="og:type" content="website">
+<meta property="og:title" content="План-факт ФОТ по подразделениям">
+<meta property="og:description" content="Бесплатный дашборд план-факт ФОТ: отклонение по подразделениям и месяцам, прогноз на год. Загрузите свой CSV — он не покидает браузер.">
+<meta name="twitter:card" content="summary">
+<style>
+/*LOVABLE_CSS*/
+</style>
+</head>
+<body>
+<main class="min-h-screen bg-background px-4 py-7 text-foreground sm:px-6 lg:px-10 lg:py-10">
+<div class="mx-auto max-w-[1320px] space-y-7">
+
+  <header>
+    <h1 class="font-heading text-[28px] font-bold leading-tight">План-факт ФОТ</h1>
+    <p class="mt-1 text-sm font-medium text-muted-foreground" id="sub"></p>
+  </header>
+
+  <section aria-label="Итоги по ФОТ" class="cards grid gap-4 md:grid-cols-3" id="cards"></section>
+
+  <section class="comment-band" id="note" hidden>
+    <div class="min-w-0 sm:flex sm:gap-5">
+      <h2 class="mb-1 shrink-0 text-[11px] font-bold uppercase text-muted-foreground sm:mb-0 sm:pt-0.5">Комментарий</h2>
+      <p class="text-sm leading-6 text-secondary-foreground" id="noteText"></p>
+    </div>
+    <time class="shrink-0 text-xs tabular-nums text-muted-foreground" id="noteWhen"></time>
+  </section>
+
+  <section class="panel p-5 sm:p-7">
+    <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:items-center sm:justify-between">
+      <h2 class="font-heading text-lg font-bold">План и факт по месяцам <span class="ml-1 text-xs font-normal text-muted-foreground">млн ₽</span></h2>
+      <select id="filter" aria-label="Подразделение" class="select-control"></select>
+    </div>
+    <div class="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-[11px] font-bold uppercase text-muted-foreground" id="legend">
+      <span class="legend-item"><i class="legend-plan"></i>План</span>
+      <span class="legend-item"><i class="legend-actual"></i>Факт</span>
+      <span class="legend-item"><i class="legend-forecast"></i>Прогноз</span>
+    </div>
+    <div class="mt-5 h-[210px] w-full min-[480px]:h-[280px]" id="chart"
+      role="img" aria-label="План, факт и прогноз по месяцам"></div>
+    <!-- The same figures the tooltip shows on hover, as a table for anyone
+         who is not using a pointer. -->
+    <details class="chart-data mt-4">
+      <summary class="w-fit cursor-pointer py-1 text-xs text-muted-foreground">Цифры по месяцам таблицей</summary>
+      <div class="mt-2 overflow-x-auto"><table id="chartTable"></table></div>
+    </details>
+  </section>
+
+  <section class="panel overflow-hidden">
+    <div class="border-b border-border px-5 py-5 sm:px-7">
+      <h2 class="font-heading text-lg font-bold">Подразделения <span class="ml-2 text-xs font-normal text-muted-foreground">по отклонению за год, худшие сверху</span></h2>
+    </div>
+    <div>
+      <table id="tbl" class="w-full border-collapse text-left">
+        <colgroup>
+          <col class="c-dept">
+          <col class="c-val"><col class="c-dev">
+          <col class="c-val"><col class="c-dev">
+          <col class="c-val"><col class="c-dev">
+        </colgroup>
+        <thead id="thead"></thead>
+        <tbody id="tbody" class="divide-y divide-border text-sm"></tbody>
+        <tfoot id="tfoot" class="text-sm"></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <details class="upd panel">
+    <summary class="cursor-pointer px-5 py-4 text-sm font-semibold sm:px-7">Обновить данные</summary>
+    <div class="space-y-5 border-t border-border px-5 pt-1 pb-6 sm:px-7">
+
+      <div class="step mt-4">
+        <label for="csv" class="mb-1 block text-[13px] font-semibold">1. Файл CSV</label>
+        <div class="mb-2 text-xs text-muted-foreground">
+          Загружайте весь файл с января, а не только новый месяц: сторно
+          прошлых периодов подтянутся сами.
+        </div>
+        <input type="file" id="csv" accept=".csv,text/csv" class="max-w-full text-[13px] file:mr-3 file:cursor-pointer file:rounded-md file:border file:border-input file:bg-card file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-foreground">
+      </div>
+
+      <div class="step">
+        <label for="cmt" class="mb-1 block text-[13px] font-semibold">2. Комментарий к месяцу</label>
+        <div class="mb-2 text-xs text-muted-foreground">
+          HRD увидит его сразу при открытии. Оставьте пустым — блок скроется.
+        </div>
+        <textarea id="cmt" class="min-h-[76px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm leading-6 text-foreground"></textarea>
+      </div>
+
+      <div class="step">
+        <label for="thrIn" class="mb-1 block text-[13px] font-semibold">3. Порог «проблемы», %</label>
+        <div class="mb-2 text-xs text-muted-foreground">
+          Отклонение за год от этого значения и выше подсвечивается красным.
+        </div>
+        <input type="number" id="thrIn" min="0.1" max="50" step="0.1" class="w-[90px] rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground">
+      </div>
+
+      <div class="msg" id="msg"></div>
+
+      <div class="step">
+        <button id="dl" disabled class="inline-flex cursor-pointer items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors">Скачать дашборд</button>
+        <div class="mt-2 text-xs text-muted-foreground">
+          Скачается такой же самостоятельный файл, уже с новыми данными.
+          Его и отправляйте дальше.
+        </div>
+      </div>
+
+      <div class="step">
+        <label class="mb-1 block text-[13px] font-semibold">Формат файла</label>
+        <pre class="mt-2 overflow-x-auto rounded-md border border-border bg-secondary px-3 py-2.5 text-xs leading-5">department,month,month_no,plan,fact,forecast
+Продажи,янв,1,7500000,7740000,
+Продажи,сен,9,7500000,,7710000</pre>
+        <div class="mt-2 text-xs text-muted-foreground">
+          Факт заполнен до последнего закрытого месяца, дальше пусто; прогноз —
+          наоборот. Суммы в рублях, без взносов, дробная часть через точку,
+          разделитель полей — запятая.
+        </div>
+      </div>
+
+    </div>
+  </details>
+
+  <footer class="border-t border-border pt-4 text-xs text-muted-foreground">
+    Ольга Димитрова &middot;
+    <a class="text-primary underline underline-offset-2" href="https://www.linkedin.com/in/olga-dimitrova-04311742a/">LinkedIn</a> &middot;
+    CC BY&nbsp;4.0 &middot; данные смоделированы
+  </footer>
+
+</div>
+</main>
+
+<script>/*LOVABLE_CHART*/</script>
+<script id="payload" type="application/json">"__DATA__"</script>
+<script>
+(function () {
+  "use strict";
+
+  var D = JSON.parse(document.getElementById("payload").textContent);
+  // Short month labels by month number; the CSV month column is free text
+  // and is not used for anything but display in the source file.
+  var MONTHS = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
+
+  // ---- Number formatting ---------------------------------------------
+  // An HR director does not need kopecks: percentages to one decimal, money
+  // in millions of roubles for amounts and in thousands for variances.
+  // Russian conventions: decimal comma, non-breaking space between digit
+  // groups and before the unit.
+  var NB = "\u00a0";
+  function num(v, digits) {
+    return v.toLocaleString("ru-RU",
+      { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+  function pct(v) {
+    return (v >= 0 ? "+" : "−") + num(Math.abs(v), 1) + "%";
+  }
+  function mln(v) {
+    return num(v / 1e6, 1) + NB + "млн" + NB + "₽";
+  }
+  function tys(v) {
+    return num(Math.round(v / 1e3), 0) + NB + "тыс." + NB + "₽";
+  }
+  // Chart axis and tooltip: two decimals, so that a small department, whose
+  // monthly payroll moves within a few hundred thousand, still gets distinct
+  // tick labels.
+  function mlnChart(v) {
+    return num(v / 1e6, 2) + NB + "млн" + NB + "₽";
+  }
+  function mlnChartBare(v) {
+    return num(v / 1e6, 2);
+  }
+  // Millions WITHOUT the unit, for table cells. The unit is already carried in
+  // the group heading (th .unit), and repeating it in every cell eats into the
+  // width: at c-val 15% the real field is ~149px, and a longer string hits
+  // overflow:hidden - the number is silently truncated with an ellipsis. The
+  // rule: the unit is set apart from the number and is not repeated in every
+  // cell.
+  function mlnBare(v) {
+    return num(v / 1e6, 1);
+  }
+  function tysSigned(v) {
+    return (v >= 0 ? "+" : "−") + tys(Math.abs(v));
+  }
+
+  // ---- Roll-up -------------------------------------------------------
+  function aggregate(rows, factMonths) {
+    var deps = [], byDep = {};
+    rows.forEach(function (r) {
+      if (!byDep[r.d]) { byDep[r.d] = []; deps.push(r.d); }
+      byDep[r.d].push(r);
+    });
+
+    function sums(list) {
+      var o = { augP: 0, augF: 0, p8: 0, f8: 0, pY: 0, eY: 0 };
+      list.forEach(function (r) {
+        var exp = r.f !== null ? r.f : r.c;
+        o.pY += r.p;
+        o.eY += exp;
+        if (r.n === factMonths) { o.augP += r.p; o.augF += exp; }
+        if (r.n <= factMonths)  { o.p8 += r.p;  o.f8 += exp; }
+      });
+      return o;
+    }
+
+    var perDep = deps.map(function (d) {
+      var s = sums(byDep[d]);
+      s.dep = d;
+      s.name = d;
+      return s;
+    });
+    // Sorted worst first by the full-year figure.
+    perDep.sort(function (a, b) {
+      return (b.eY - b.pY) / b.pY - (a.eY - a.pY) / a.pY;
+    });
+
+    return { deps: deps, perDep: perDep, total: sums(rows) };
+  }
+
+  // ---- Status --------------------------------------------------------
+  // Colour is never the only carrier of meaning: an icon and a word always
+  // sit beside it. Colour blindness, black-and-white printing, a screenshot
+  // in a messenger - the signal has to survive all of them.
+  // One threshold across all periods.
+  function statusOf(devPct, threshold) {
+    if (devPct >= threshold) return "err";
+    if (devPct >= threshold / 2) return "warn";
+    return "ok";
+  }
+  function wordOf(st, devPct) {
+    if (st === "err") return "перерасход";
+    if (st === "warn") return "под наблюдением";
+    return devPct < -1 ? "экономия" : "в плане";
+  }
+  // The arrow encodes direction against plan: up means more was spent.
+  // The sign is repeated in the percentage itself, so the signal is threefold:
+  // arrow, sign, colour.
+  //
+  // It is driven by the SIGN of the variance, not by the status. Keying it to
+  // the status (err/warn up, ok down) breaks as soon as a variance is positive
+  // but below half the threshold: the status is "ok", so the card drew a down
+  // arrow next to a "+0.1%" - the arrow and the sign contradicting each other.
+  // The demo dataset never shows it, because every department there is either
+  // clearly over or clearly under; an uploaded CSV reaches it immediately,
+  // which is exactly what the page is for.
+  function arrowOf(devPct) { return devPct >= 0 ? "▲" : "▼"; }
+
+  var MONTH_FULL = {
+    "янв": "Январь", "фев": "Февраль", "мар": "Март", "апр": "Апрель",
+    "май": "Май", "июн": "Июнь", "июл": "Июль", "авг": "Август",
+    "сен": "Сентябрь", "окт": "Октябрь", "ноя": "Ноябрь", "дек": "Декабрь"
+  };
+
+  var state = {
+    rows: D.rows, threshold: D.threshold, comment: D.comment,
+    commentDate: D.commentDate, filter: "__all__"
+  };
+
+  // ---- Rendering -----------------------------------------------------
+  function render() {
+    var agg = aggregate(state.rows, D.factMonths);
+    var t = agg.total;
+    var last = MONTHS[D.factMonths - 1];
+    var lastFull = MONTH_FULL[last] || last;
+
+    // The caption states what is already actual and what is still forecast.
+    // It used to read awkwardly ("actual through August, forecast to
+    // December"); here the period speaks for itself.
+    // "N departments" was removed from the caption: content must match the
+    // purpose of the page. The HR director this dashboard is built for
+    // already knows the make-up of their own area of responsibility, and the
+    // dashboard is not obliged to count their own departments for them.
+    document.getElementById("sub").textContent =
+      "Янв–" + last + ": факт" + (D.factMonths < 12
+        ? " · " + MONTHS[D.factMonths] + "–дек: прогноз" : "");
+
+    var devAug = (t.augF - t.augP) / t.augP * 100;
+    var dev8 = (t.f8 - t.p8) / t.p8 * 100;
+    var devY = (t.eY - t.pY) / t.pY * 100;
+
+    // Heading split in two, following the Insights layout: the label names the
+    // figure, the subtitle names the period it covers. The wording of both is
+    // taken from there as well ("Latest closed month", "Actuals + forecast").
+    // Only the text is restructured - every value below is the same expression
+    // as before.
+    var cards = [
+      { label: lastFull + ", факт", sub: "Последний закрытый месяц",
+        plan: t.augP, big: t.augF,
+        dev: t.augF - t.augP, pct: devAug, fmt: mln },
+      { label: "Факт с начала года",
+        sub: "Янв–" + last + ", месяцев: " + D.factMonths,
+        plan: t.p8,
+        big: t.f8, dev: t.f8 - t.p8, pct: dev8, fmt: mln },
+      { label: "Ожидание на год", sub: "Факт + прогноз, 12 месяцев",
+        plan: t.pY, big: t.eY,
+        dev: t.eY - t.pY, pct: devY, fmt: mln }
+    ];
+
+    // A KPI-widget style card: heading in plain text, the large number on the
+    // left, a pill badge with arrow and percentage beside it, and a quiet
+    // "from <plan>" caption below - the plan is not lost, but it does not
+    // compete for attention with the actual.
+    // Markup and classes are Lovable's metric card; the status (and so the
+    // bar and the badge colour) is still ours: over the threshold - the
+    // Lovable "alert" card, watch zone - its neutral card, under - positive.
+    var CARD = { err: " metric-card-alert", warn: "", ok: " metric-card-ok" };
+    var BADGE = { err: "variance-badge-negative", warn: "variance-badge", ok: "variance-badge-positive" };
+    document.getElementById("cards").innerHTML = cards.map(function (c) {
+      var st = statusOf(c.pct, state.threshold);
+      return '<article class="metric-card' + CARD[st] + ' is-' + st + '">'
+        + '<p class="text-xs font-bold uppercase text-muted-foreground">' + c.label + '</p>'
+        + '<p class="mt-0.5 text-xs text-muted-foreground">' + c.sub + '</p>'
+        + '<div class="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">'
+        + '<strong class="font-heading text-3xl font-bold tabular-nums whitespace-nowrap sm:text-[34px]">' + c.fmt(c.big) + '</strong>'
+        + '<span class="' + BADGE[st] + ' is-' + st + '">' + arrowOf(c.pct) + ' ' + pct(c.pct) + '</span>'
+        + '</div>'
+        + '<p class="mt-2 text-xs tabular-nums text-muted-foreground">план ' + c.fmt(c.plan)
+        + ' · ' + tysSigned(c.dev) + '</p>'
+        + '</article>';
+    }).join("");
+
+    var note = document.getElementById("note");
+    if (state.comment) {
+      note.hidden = false;
+      document.getElementById("noteText").textContent = state.comment;
+      document.getElementById("noteWhen").textContent = state.commentDate || "";
+    } else {
+      note.hidden = true;
+    }
+
+    var sel = document.getElementById("filter");
+    if (sel.options.length !== agg.deps.length + 1) {
+      sel.innerHTML = '<option value="__all__">Все подразделения</option>'
+        + agg.deps.map(function (d) {
+            return '<option value="' + d + '">' + d + '</option>';
+          }).join("");
+      sel.value = state.filter;
+    }
+
+    drawChart();
+    drawTable(agg);
+  }
+
+  // ---- Chart ---------------------------------------------------------
+  // The plan line against the actual line (and the forecast), in money: two
+  // lines with the key point labelled. This deliberately replaced an earlier
+  // bar chart of variance - a "plan vs actual" presentation instead of
+  // "variance in %".
+  //
+  // A red/green fill of the gap by the sign of the variance was removed. With
+  // a signed fill the chart carries the same signal that is already in the
+  // card badges and in the colour of the table numbers, and beside them it
+  // read as overloaded - so only plan and actual remain.
+  // The actual line takes a neutral colour (var(--accent), not var(--clay)):
+  // clay reads as "caution/qualifier" everywhere else in this dashboard, and
+  // a red actual line conflicted with the fact that an actual is not always a
+  // problem - the status is already named in words in the card and table.
+  // The area under the actual line is a quiet neutral fill, with the line
+  // weight from the reference and no encoding of sign by colour.
+  //
+  // Two traps that are easy to reintroduce here; both were measured rather
+  // than assumed:
+  // 1. A fixed viewBox of 760x150 on a narrow screen (~330px container) gives
+  //    a scale factor of 0.43 - 10.5px labels become 4.5px, the same defect
+  //    already fixed in v2. Here the SVG is redrawn to the container's actual
+  //    width (ResizeObserver), and font-size is set in viewBox units so that
+  //    the resulting pixel size stays at no less than ~11px on a phone.
+  // 2. The axis break (see below) must sit STRICTLY inside the plot area, not
+  //    in the month-label band: the first version placed it below the bottom
+  //    gridline where it collided with "Jan" (measured by screenshot and DOM
+  //    rects).
+  // Drawing is the Lovable Recharts chart (lovable/chart.jsx, inlined above
+  // as window.BPChart). Everything it is given is computed here, by the same
+  // expressions as before: monthly plan and expected, the axis range that
+  // does not start at zero (so a 2.5% gap is visible at all), and evenly
+  // spaced labelled gridlines.
+  function drawChart() {
+    var rows = state.filter === "__all__"
+      ? state.rows
+      : state.rows.filter(function (r) { return r.d === state.filter; });
+
+    var plan = [], exp = [], m, i;
+    for (m = 1; m <= 12; m++) {
+      var p = 0, e = 0;
+      rows.forEach(function (r) {
+        if (r.n === m) { p += r.p; e += (r.f !== null ? r.f : r.c); }
+      });
+      plan.push(p); exp.push(e);
+    }
+
+    var all = plan.concat(exp);
+    var dataMin = Math.min.apply(null, all);
+    var dataMax = Math.max.apply(null, all);
+    var pad = (dataMax - dataMin) * 0.6 || dataMax * 0.02;
+    var hi = dataMax + pad;
+    var lo = Math.max(0, dataMin - pad);
+    var span = hi - lo || 1;
+    function ticksOf(n) {
+      var t = [], gi;
+      for (gi = 0; gi <= n; gi++) { t.push(lo + span * gi / n); }
+      return t;
+    }
+
+    window.BPChart.render(document.getElementById("chart"), {
+      months: MONTHS, monthFull: MONTH_FULL, factMonths: D.factMonths,
+      plan: plan, exp: exp, lo: lo, hi: lo + span,
+      ticks: ticksOf(4), ticksNarrow: ticksOf(3),
+      fmt: mlnChart, fmtBare: mlnChartBare, pct: pct
+    });
+
+    // The same numbers the tooltip carries, written out for anyone not using
+    // a pointer. Built from the same plan/exp arrays, so it cannot drift from
+    // what the chart shows.
+    var ct = ['<caption class="vh">План, факт и прогноз по месяцам</caption>',
+      '<thead><tr><th scope="col">Месяц</th><th scope="col">План</th>',
+      '<th scope="col">Факт / прогноз</th><th scope="col">К плану</th></tr></thead><tbody>'];
+    for (i = 0; i < 12; i++) {
+      var cd = plan[i] ? (exp[i] / plan[i] - 1) * 100 : 0;
+      ct.push('<tr><th scope="row">' + (MONTH_FULL[MONTHS[i]] || MONTHS[i]) + '</th>'
+        + '<td>' + mlnChart(plan[i]) + '</td>'
+        + '<td>' + mlnChart(exp[i]) + (i >= D.factMonths ? ' (прогноз)' : '') + '</td>'
+        + '<td>' + pct(cd) + '</td></tr>');
+    }
+    ct.push('</tbody>');
+    document.getElementById("chartTable").innerHTML = ct.join("");
+  }
+
+  // ---- Table ---------------------------------------------------------
+  function drawTable(agg) {
+    var lastKey = MONTHS[D.factMonths - 1];
+    var lastFull = MONTH_FULL[lastKey] || lastKey;
+
+    // The header is drawn together with the data rather than sitting static
+    // in the markup: otherwise, after a new month is loaded the labels stay
+    // from the previous one and the "August" column silently shows September.
+    // Each delta column carries a "vs plan, %" label so there is no guessing
+    // what the delta is measured against.
+    // Header markup and classes are Lovable's department table.
+    var H1 = 'class="table-heading border-l border-border text-center"';
+    var H2 = 'px-5 pb-3 text-right';
+    document.getElementById("thead").innerHTML =
+      '<tr class="bg-muted/45 text-[11px] font-bold text-muted-foreground">'
+      + '<th rowspan="2" class="table-heading px-7">Подразделение</th>'
+      + '<th ' + H1 + ' colspan="2">' + lastFull + '</th>'
+      + '<th ' + H1 + ' colspan="2">Янв–' + lastKey + '</th>'
+      + '<th ' + H1 + ' colspan="2">Год: факт + прогноз</th>'
+      + '</tr><tr class="border-b border-border bg-muted/45 text-[10px] font-medium text-muted-foreground">'
+      + '<th class="border-l border-border ' + H2 + '">факт<span class="unit">млн ₽</span></th>'
+      + '<th class="' + H2 + '">к плану<span class="unit">%</span></th>'
+      + '<th class="border-l border-border ' + H2 + '">факт<span class="unit">млн ₽</span></th>'
+      + '<th class="' + H2 + '">к плану<span class="unit">%</span></th>'
+      + '<th class="border-l border-border ' + H2 + '">ожидание<span class="unit">млн ₽</span></th>'
+      + '<th class="' + H2 + '">к плану<span class="unit">%</span></th>'
+      + '</tr>';
+
+    // Two colours, not three. A yellow "watch zone" in the table coloured
+    // almost every row, and with 21 coloured numbers colour stops being a
+    // signal. Red is overspend past the threshold, green is underspend,
+    // everything else is neutral. The threshold and its half still live in
+    // the cards, where there are three numbers rather than twenty-one.
+    function cls(v) {
+      if (v >= state.threshold) return "v-err";
+      if (v < 0) return "v-ok";
+      return "";
+    }
+
+    // In-cell bars in the year column were removed: the column is already
+    // sorted by that value (stated in the table heading), so the bar repeated
+    // the sorting without adding readability, and it broke the alignment of
+    // the numbers.
+    // Cells in Lovable's markup: amount on the left, the variance cell with
+    // the percentage over the absolute amount. The colour rule is ours (cls).
+    var TXT = { "v-err": "text-negative", "v-ok": "text-positive", "": "text-foreground" };
+    var VAL = 'border-l border-border px-5 py-4 text-right tabular-nums';
+    function dev(label, v, abs) {
+      var c = cls(v);
+      return '<td data-l="' + label + '" class="px-5 py-4 text-right' + (c ? ' ' + c : '') + '">'
+        + '<div class="tabular-nums"><span class="font-semibold ' + TXT[c] + '">' + pct(v) + '</span>'
+        + '<span class="mt-0.5 block text-[11px] text-muted-foreground">' + tysSigned(abs) + '</span></div></td>';
+    }
+    function row(o, name, isTotal) {
+      var dAug = (o.augF - o.augP) / o.augP * 100;
+      var d8 = (o.f8 - o.p8) / o.p8 * 100;
+      var dY = (o.eY - o.pY) / o.pY * 100;
+
+      return '<tr class="' + (isTotal ? 'border-t-2 border-border-strong bg-muted/45 font-semibold' : 'table-row') + '">'
+        + '<td data-l="" class="px-7 py-4 font-semibold">' + name + '</td>'
+        + '<td data-l="' + lastFull + ', факт, млн ₽" class="' + VAL + '">' + mlnBare(o.augF) + '</td>'
+        + dev(lastFull + ', к плану', dAug, o.augF - o.augP)
+        + '<td data-l="Янв–' + lastKey + ', факт, млн ₽" class="' + VAL + '">' + mlnBare(o.f8) + '</td>'
+        + dev('Янв–' + lastKey + ', к плану', d8, o.f8 - o.p8)
+        + '<td data-l="Год, ожидание, млн ₽" class="' + VAL + '">' + mlnBare(o.eY) + '</td>'
+        + dev('Год, к плану', dY, o.eY - o.pY)
+        + '</tr>';
+    }
+
+    document.getElementById("tbody").innerHTML =
+      agg.perDep.map(function (o) { return row(o, o.name, false); }).join("");
+    document.getElementById("tfoot").innerHTML = row(agg.total, "Итого", true);
+  }
+
+  // ---- Data update ---------------------------------------------------------
+  var msg = document.getElementById("msg");
+  var dl = document.getElementById("dl");
+
+  function say(text, bad) {
+    msg.textContent = text;
+    msg.className = "msg " + (bad ? "bad" : "ok");
+  }
+
+  var HEADER = ["department", "month", "month_no", "plan", "fact", "forecast"];
+
+  function parseCsv(text) {
+    var lines = text.replace(/^﻿/, "").replace(/\r\n?/g, "\n").split("\n")
+      .filter(function (l) { return l.trim() !== ""; });
+    if (!lines.length) { throw new Error("файл пустой"); }
+
+    var head = lines[0].split(",").map(function (h) { return h.trim(); });
+    if (head.join(",") !== HEADER.join(",")) {
+      throw new Error("заголовок не тот, нужен " + HEADER.join(","));
+    }
+
+    var rows = [], seen = {}, i;
+    for (i = 1; i < lines.length; i++) {
+      var c = lines[i].split(",");
+      if (c.length !== 6) {
+        throw new Error("строка " + (i + 1) + ": столбцов " + c.length
+          + ", нужно 6");
+      }
+      var n = parseInt(c[2], 10);
+      if (!(n >= 1 && n <= 12)) {
+        throw new Error("строка " + (i + 1) + ": номер месяца не от 1 до 12");
+      }
+      var p = parseFloat(c[3]);
+      if (!isFinite(p)) {
+        throw new Error("строка " + (i + 1) + ": план не число");
+      }
+      var f = c[4].trim() === "" ? null : parseFloat(c[4]);
+      var fc = c[5].trim() === "" ? null : parseFloat(c[5]);
+      if (f === null && fc === null) {
+        throw new Error("строка " + (i + 1) + ": нет ни факта, ни прогноза");
+      }
+      var key = c[0] + "|" + n;
+      if (seen[key]) {
+        throw new Error("повтор: " + c[0] + ", месяц " + n);
+      }
+      seen[key] = 1;
+      rows.push({ d: c[0].trim(), m: c[1].trim(), n: n, p: p, f: f, c: fc });
+    }
+
+    // The last closed month is the highest one that still has an actual.
+    var factMonths = 0;
+    rows.forEach(function (r) {
+      if (r.f !== null && r.n > factMonths) { factMonths = r.n; }
+    });
+    if (!factMonths) { throw new Error("ни в одном месяце нет факта"); }
+
+    var deps = {};
+    rows.forEach(function (r) { deps[r.d] = 1; });
+    var nd = Object.keys(deps).length;
+    if (rows.length !== nd * 12) {
+      throw new Error("строк " + rows.length + ", а для подразделений ("
+        + nd + ") нужно " + (nd * 12) + " — по 12 месяцев на каждое");
+    }
+
+    return { rows: rows, factMonths: factMonths, deps: nd };
+  }
+
+  document.getElementById("csv").addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) { return; }
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        var res = parseCsv(String(fr.result));
+        state.rows = res.rows;
+        D.factMonths = res.factMonths;
+        // The baked comment describes the demo figures, not the uploaded ones
+        state.comment = "";
+        state.commentDate = "";
+        document.getElementById("cmt").value = "";
+        render();
+        say("Загружено строк: " + res.rows.length + ", подразделений: " + res.deps
+          + ", факт по " + MONTH_FULL[MONTHS[res.factMonths - 1]].toLowerCase()
+          + " включительно. Страница пересчитана.", false);
+        dl.disabled = false;
+      } catch (err) {
+        dl.disabled = true;
+        say("Файл не принят: " + err.message, true);
+      }
+    };
+    fr.onerror = function () { say("Не удалось прочитать файл", true); };
+    fr.readAsText(file, "utf-8");
+  });
+
+  document.getElementById("cmt").addEventListener("input", function (e) {
+    state.comment = e.target.value.trim();
+    state.commentDate = new Date().toLocaleDateString("ru-RU");
+    render();
+    dl.disabled = false;
+  });
+
+  document.getElementById("thrIn").addEventListener("input", function (e) {
+    var v = parseFloat(e.target.value);
+    if (isFinite(v) && v > 0) {
+      state.threshold = v;
+      render();
+      dl.disabled = false;
+    }
+  });
+
+  // Download: the page rewrites its own JSON and hands back a copy of
+  // itself. Updating needs neither Python nor a network - only a browser.
+  dl.addEventListener("click", function () {
+    var payload = {
+      rows: state.rows,
+      factMonths: D.factMonths,
+      threshold: state.threshold,
+      comment: state.comment,
+      commentDate: state.commentDate,
+      built: new Date().toLocaleDateString("ru-RU")
+    };
+    var doc = document.documentElement.cloneNode(true);
+    doc.querySelector("#payload").textContent = JSON.stringify(payload);
+    var det = doc.querySelector("details.upd");
+    if (det) { det.removeAttribute("open"); }
+    var m = doc.querySelector("#msg");
+    if (m) { m.textContent = ""; m.className = "msg"; }
+    var fileInput = doc.querySelector("#csv");
+    if (fileInput) { fileInput.removeAttribute("value"); }
+
+    var blob = new Blob(["<!doctype html>\n" + doc.outerHTML],
+      { type: "text/html;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "budget-plan-fact.html";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    say("Файл скачан. Отправляйте эту копию — данные едут внутри неё.", false);
+  });
+
+  document.getElementById("filter").addEventListener("change", function (e) {
+    state.filter = e.target.value;
+    drawChart();
+  });
+
+  document.getElementById("thrIn").value = state.threshold;
+  document.getElementById("cmt").value = state.comment || "";
+  render();
+})();
+</script>
+</body>
+</html>

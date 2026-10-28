@@ -1,0 +1,1037 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Empty icon, so the browser does not request /favicon.ico. -->
+<link rel="icon" href="data:,">
+<title>Калькулятор стоимости выравнивания оплаты мужчин и женщин (Россия)</title>
+<!-- No external resources of any kind: no fonts, no CDN, no analytics.
+     Open the Network tab: it stays empty. That is the point of the tool. -->
+
+<!-- Metadata, so a shared link renders as a card rather than a bare URL.
+     og:image is deliberately absent: an image would have to be embedded as a
+     data URI, and no scraper reads those — a missing image degrades to a
+     text card, whereas a broken remote one would break the zero-request rule. -->
+<meta name="description" content="Сколько стоит закрыть необъяснённый разрыв в оплате мужчин и женщин: минимальный сценарий или полное выравнивание, со страховыми взносами РФ. Бесплатно, считается в браузере.">
+<meta name="author" content="Ольга Димитрова">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Калькулятор стоимости выравнивания оплаты мужчин и женщин (Россия)">
+<meta property="og:description" content="Минимальный сценарий или полное выравнивание: сколько стоит каждый и сколько стоит выбор между ними. Загрузите свой CSV, данные не покидают вкладку.">
+<meta property="og:locale" content="ru_RU">
+<meta name="twitter:card" content="summary">
+<link rel="license" href="https://creativecommons.org/licenses/by/4.0/">
+<style>
+:root {
+  color-scheme: light dark;
+
+  --bg:        #fbfaf8;
+  --bg-panel:  #ffffff;
+  --bg-raised: #ffffff;   /* card on top of a card: in the light theme the
+                             layers are separated by shadow, not colour */
+  --bg-sunk:   #f2f0ec;
+  --ink:       #1a1a18;
+  --ink-mid:   #4d4c48;
+  --ink-soft:  #78766f;
+  --ink-faint: #8e8b83;   /* incidental detail: footnotes, dates. 3.26:1 on --bg */
+  --line:      #ddd9d2;
+  --line-soft: #e9e6e0;
+
+  /* Interface accents: sea / clay / moss. Checked with the palette validator
+     against the #ffffff panel in all-pairs mode: CVD dE 9.4 (deutan), normal
+     vision 21.1, every contrast >= 3:1.
+     Clay and moss come from positioning but were recomputed: the originals
+     #a8593f / #4a6b4f failed the check (dE 2.2 under protanopia, and moss fell
+     below the chroma threshold and read as grey).
+     The accent keeps the page's existing sea character, lifted to passing
+     values: #1f4f6b sat darker than the lightness band (L 0.408 against 0.43)
+     and below the chroma threshold (C 0.07). Purple would separate further from
+     the gap colour, but it chills the warm paper ground. Do not pick by eye —
+     rerun the validator. */
+  --accent:    #00608a;
+  --accent-lift:#0a7099;  /* hover */
+  --accent-soft:#e4f1f7;
+  --clay:      #d95926;
+  --clay-soft: #fbeae2;
+  --moss:      #199e70;
+  --moss-soft: #eaf7f2;
+
+  --warn:      #8a5a10;
+  --warn-bg:   #fbf1de;
+  --err:       #8e2a20;
+  --err-bg:    #fbe9e6;
+  --ok:        #1f5d3a;
+  --ok-bg:     #e5f2ea;
+  --focus:     #00608a;
+
+  --shadow:        0 1px 2px rgba(26,26,24,.05);
+  --shadow-raised: 0 1px 2px rgba(26,26,24,.06),
+                   0 8px 24px -12px rgba(26,26,24,.18);
+
+  /* Chart series colours. Validated as a set with the dataviz palette checker
+     against the panel surface (#ffffff): worst adjacent pair deutan dE 11.7,
+     normal-vision dE 18.8, all three >= 3:1 contrast. The previous pairing
+     (accent #1f4f6b with violet #6d4a86) failed: protan dE 4.7 and 12.3 even
+     with full colour vision — and that is exactly the pair that has to
+     separate "corrected" from "reverse gap, never corrected".
+     Do not retune these by eye; re-run the checker. */
+  --s-gap:     #2a78d6;   /* the gap being closed */
+  --s-rev:     #c0417c;   /* gap favouring women — shown, never corrected */
+  --s-thresh:  #8a5a10;   /* target residual threshold */
+
+  --mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", "Liberation Mono", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:        #14161a;
+    --bg-panel:  #1b1e23;
+    --bg-raised: #21242a;   /* in the dark a layer reads by colour, not shadow */
+    --bg-sunk:   #101216;   /* an inset sits deeper than the panel, not above it */
+    --ink:       #e9e7e2;
+    --ink-mid:   #b8b5ae;
+    --ink-soft:  #8d8a83;
+    --ink-faint: #6f6d67;
+    --line:      #33373e;
+    --line-soft: #2a2e34;
+
+    /* Accents, dark steps for the #1b1e23 panel (not lightened light ones):
+       CVD dE 9.3 (deutan), normal vision 18.3, every contrast >= 3:1.
+       The accent here is deliberately bluer than the light sea: a lightened sea
+       sat right next to the gap colour --s-gap (dE 3.2), and a link would have
+       been easy to mistake for a point on the chart. This step holds a distance
+       of 18.3. */
+    --accent:    #4a9be0;
+    --accent-lift:#6bb0e8;
+    --accent-soft:#12242f;
+    --clay:      #d95926;
+    --clay-soft: #33201a;
+    --moss:      #1baf7a;
+    --moss-soft: #10291f;
+
+    --warn:      #e2b168;
+    --warn-bg:   #33291a;
+    --err:       #ef9d92;
+    --err-bg:    #351f1c;
+    --ok:        #8fd0a8;
+    --ok-bg:     #172b20;
+    --focus:     #4a9be0;
+
+    --shadow:        0 1px 2px rgba(0,0,0,.4);
+    --shadow-raised: 0 1px 2px rgba(0,0,0,.4),
+                     0 8px 24px -12px rgba(0,0,0,.7);
+
+    /* Dark steps are selected for the dark panel (#1b1e23), not flipped from
+       light: blue vs violet collapses here (protan dE 1.9). Magenta holds.
+       Checked set: protan dE 11.1, normal-vision dE 18.3, all >= 3:1. */
+    --s-gap:     #4590e2;
+    --s-rev:     #d16b9a;
+    --s-thresh:  #b8861f;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+
+.wrap {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 1.75rem 1.15rem 4rem;
+}
+
+a { color: var(--accent); }
+a:hover { color: var(--accent-lift); }
+
+h1, h2, h3 { font-weight: 600; line-height: 1.25; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 1.25rem; }
+h2 { font-size: 1.05rem; margin-bottom: 0.5rem; }
+h3 { font-size: 0.95rem; margin-bottom: 0.35rem; }
+
+p { margin: 0 0 0.75rem; }
+.muted { color: var(--ink-soft); }
+.small { font-size: 0.83rem; }
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+.fig .value.num { font-variant-numeric: proportional-nums; font-feature-settings: "tnum" 0; }
+
+/* ------------------------------------------------------------- masthead */
+.masthead {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.9rem;
+  margin-bottom: 1.6rem;
+}
+.masthead .sub {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  margin: 0.3rem 0 0;
+}
+
+/* -------------------------------------------------------- first screen */
+.headline { margin: 0 0 1.9rem; }
+
+.figures {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+@media (min-width: 46rem) {
+  .figures { grid-template-columns: 1fr 1fr 1.25fr; align-items: stretch; }
+}
+
+.fig {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.95rem 1rem 0.9rem;
+}
+.fig .label {
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 0.35rem;
+}
+/* Hero figures stay in the UI sans with proportional figures. A serif here
+   reads as decoration, and tabular figures make a large number look loose —
+   tnum belongs in the table and the axis, where digits align vertically. */
+.fig .value {
+  font-size: clamp(1.75rem, 8vw, 2.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+.fig .note { font-size: 0.78rem; color: var(--ink-soft); margin-top: 0.3rem; }
+
+.fig-main {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.fig-main .label { color: var(--accent); }
+.fig-main .value { font-size: clamp(2.3rem, 12vw, 3.4rem); }
+
+.verdict {
+  margin: 1.05rem 0 0;
+  font-family: var(--serif);
+  font-size: clamp(1.05rem, 4.4vw, 1.35rem);
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------- panels */
+section { margin: 0 0 2.1rem; }
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 1.05rem 1.05rem 1.15rem;
+}
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.9rem;
+  margin-bottom: 0.75rem;
+}
+.section-head h2 { margin: 0; }
+.section-head .hint { color: var(--ink-soft); font-size: 0.82rem; }
+
+/* -------------------------------------------------------------- controls */
+.controls {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem 1.1rem;
+}
+@media (min-width: 34rem) { .controls { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 56rem) { .controls { grid-template-columns: 1fr 1fr 1fr; } }
+
+.ctl { display: flex; flex-direction: column; gap: 0.25rem; }
+.ctl label { font-size: 0.86rem; font-weight: 600; }
+.ctl .jur {
+  font-size: 0.73rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+}
+.ctl input {
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  padding: 0.42rem 0.55rem;
+  background: var(--bg-sunk);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  width: 100%;
+  min-width: 0;
+}
+input:focus-visible, select:focus-visible, button:focus-visible,
+summary:focus-visible, [type="radio"]:focus-visible, [type="file"]:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.ctl-foot {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+button {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--bg-sunk);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  cursor: pointer;
+}
+button:hover { border-color: var(--ink-soft); }
+
+/* -------------------------------------------------------------- scenario */
+.scenario {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  align-items: center;
+}
+.scenario .sc-legend { font-size: 0.86rem; font-weight: 600; }
+.scenario label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* ----------------------------------------------------------------- chart */
+.chart-box { width: 100%; }
+.chart-svg { display: block; width: 100%; height: auto; }
+
+.gridline { stroke: var(--line-soft); stroke-width: 1; }
+.zeroline { stroke: var(--ink-soft); stroke-width: 1.25; }
+/* Dashing is reserved for the threshold: it is a rule the reader must not
+   confuse with the grid, and it is genuinely a limit rather than data. */
+.threshline {
+  stroke: var(--s-thresh);
+  stroke-width: 1.75;
+  stroke-dasharray: 7 5;
+}
+.thresh-lab {
+  fill: var(--s-thresh);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+}
+.axis-lab {
+  fill: var(--ink-soft);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+/* 12.5px, not 11.5: uppercase with letter-spacing needs more size to stay
+   legible, and on a phone the viewBox floor scales this down by ~0.88. */
+.axis-title {
+  fill: var(--ink-soft);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cat-lab { fill: var(--ink); font-family: var(--sans); font-size: 14px; }
+.cat-sub { fill: var(--ink-soft); font-family: var(--sans); font-size: 12px; }
+
+.connector { stroke: var(--s-gap); stroke-width: 2; }
+.connector.flat { stroke: var(--ink-soft); stroke-width: 1; stroke-dasharray: 3 3; }
+
+/* The 2px surface ring separates the two markers where they nearly touch —
+   a small residual leaves before and after almost on top of each other. */
+.pt-before { fill: var(--bg-panel); stroke: var(--s-gap); stroke-width: 2; }
+.pt-after  { fill: var(--s-gap); stroke: var(--bg-panel); stroke-width: 2; }
+
+.cat.reverse .connector { stroke: var(--s-rev); }
+.cat.reverse .pt-before { stroke: var(--s-rev); }
+.cat.reverse .pt-after  { fill: var(--s-rev); stroke: var(--bg-panel); }
+
+/* Hover/focus layer. The hit target is a full-height slot, not the 9px marker:
+   landing on a dot dead-centre is not a reasonable ask. */
+.cat-hit { fill: transparent; cursor: pointer; }
+.cat-band { fill: var(--ink); opacity: 0; transition: opacity 0.12s ease; }
+.cat.hot .cat-band { opacity: 0.045; }
+.cat-hit:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) {
+  .cat-band { transition: none; }
+}
+
+/* Direct labels, selective by rule: the largest residual and any reverse gap.
+   A number on every point would be unreadable at seven categories. */
+.pt-lab {
+  fill: var(--ink);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: var(--bg-panel);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+}
+
+.unrel-ring {
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 1.25;
+  stroke-dasharray: 2.5 2.5;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.1rem;
+  margin-top: 0.7rem;
+  font-size: 0.79rem;
+  color: var(--ink-mid);
+}
+.legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.key { display: inline-block; width: 0.75rem; height: 0.75rem; flex: none; }
+.key-before { border: 2px solid var(--s-gap); border-radius: 50%; background: var(--bg-panel); }
+.key-after  { border: 2px solid var(--s-gap); border-radius: 50%; background: var(--s-gap); }
+.key-rev    { border: 2px solid var(--s-rev); background: var(--s-rev); transform: rotate(45deg); }
+.key-thresh { height: 0; border-top: 2px dashed var(--s-thresh); width: 1.2rem; }
+.key-unrel  { border: 1.5px dashed var(--ink-soft); border-radius: 50%; }
+
+/* ----------------------------------------------------------------- tables */
+.scroller {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+}
+table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+th, td {
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line-soft);
+  white-space: nowrap;
+}
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-sunk);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-mid);
+  white-space: normal;
+  min-width: 5.5rem;
+  vertical-align: bottom;
+}
+tbody th, tfoot th { font-weight: 600; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.strong { font-weight: 600; }
+td.neg { color: var(--s-rev); }
+tfoot td, tfoot th {
+  border-top: 2px solid var(--line);
+  border-bottom: none;
+  font-weight: 600;
+  background: var(--bg-sunk);
+}
+tr.row-reverse th[scope="row"] { color: var(--s-rev); }
+tr.row-unreliable { background: var(--bg-sunk); }
+
+.tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--ink-mid);
+  margin-right: 0.3rem;
+  white-space: nowrap;
+}
+
+table.mini { font-size: 0.8rem; margin-top: 0.5rem; }
+table.mini th, table.mini td { padding: 0.3rem 0.5rem; }
+
+/* --------------------------------------------------------------- summary */
+.summary th.k { font-weight: 400; color: var(--ink-mid); white-space: normal; }
+.summary td.v { font-weight: 600; }
+
+/* --------------------------------------------------------------- upload */
+/* A promise the page keeps by construction — moss, not the accent. */
+.privacy {
+  border: 1px solid var(--moss);
+  background: var(--moss-soft);
+  border-radius: 2px;
+  padding: 0.7rem 0.85rem;
+  margin-bottom: 0.9rem;
+}
+.privacy strong { color: var(--moss); }
+.privacy p:last-child { margin-bottom: 0; }
+
+.upload-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+}
+input[type="file"] {
+  font: inherit;
+  font-size: 0.85rem;
+  max-width: 100%;
+}
+/* Looks like the neighbouring button but is an <a download>: the sample is a
+   data: URI, so the browser saves it without any request. */
+.btn-link {
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 0.3rem 0.6rem;
+  white-space: nowrap;
+}
+.btn-link:hover { border-color: var(--accent); }
+
+.notice {
+  border-radius: 2px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.85rem;
+  margin-top: 0.55rem;
+  border: 1px solid;
+}
+.notice.ok   { background: var(--ok-bg);   border-color: var(--ok);   color: var(--ok); }
+.notice.warn { background: var(--warn-bg); border-color: var(--warn); color: var(--warn); }
+.notice.error{ background: var(--err-bg);  border-color: var(--err);  color: var(--err); }
+
+/* ---------------------------------------------------------------- method */
+details.method {
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--bg-panel);
+}
+details.method > summary {
+  cursor: pointer;
+  padding: 0.85rem 1.05rem;
+  font-weight: 600;
+  list-style: none;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+details.method > summary::-webkit-details-marker { display: none; }
+details.method > summary::before {
+  content: "+";
+  font-family: var(--mono);
+  color: var(--ink-soft);
+}
+details.method[open] > summary::before { content: "\2212"; }
+details.method > summary .sm { font-weight: 400; color: var(--ink-soft); font-size: 0.82rem; }
+.method-body {
+  padding: 0 1.05rem 1.2rem;
+  border-top: 1px solid var(--line-soft);
+  font-size: 0.9rem;
+}
+.method-body h3 { margin-top: 1.15rem; }
+.method-body ol { padding-left: 1.2rem; }
+.method-body li { margin-bottom: 0.35rem; }
+
+.formula {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  background: var(--bg-sunk);
+  border-left: 2px solid var(--line);
+  padding: 0.5rem 0.7rem;
+  margin: 0.4rem 0 0.7rem;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+blockquote.caveat {
+  margin: 0.6rem 0 0.9rem;
+  padding: 0.7rem 0.9rem;
+  border-left: 3px solid var(--clay);
+  background: var(--clay-soft);
+  font-family: var(--serif);
+  font-size: 0.95rem;
+}
+blockquote.caveat p:last-child { margin-bottom: 0; }
+
+/* -------------------------------------------------------- scenario tiles */
+/* Two columns of stat tiles, one per scenario, plus a difference column that
+   carries the page's actual point. Below 46rem they stack. */
+.scen-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+@media (min-width: 46rem) {
+  .scen-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.scen {
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.85rem 0.9rem 0.95rem;
+  background: var(--bg-panel);
+}
+.scen-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.55rem;
+}
+.scen-name {
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+/* Proportional figures: a large standalone number looks loose with tnum. */
+.scen-total {
+  font-size: clamp(1.5rem, 6vw, 1.95rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-variant-numeric: proportional-nums;
+}
+
+/* Meter: the fill is the cost as a share of payroll, the track a lighter step
+   of the same hue, so the ratio reads across the whole bar. */
+.meter {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--accent-soft);
+  overflow: hidden;
+  /* Clear of the headline above it: at clamp() sizes the number's descender
+     box reaches further down than the type size suggests. */
+  margin: 0.45rem 0 0.3rem;
+}
+.meter > i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--s-gap);
+}
+.meter-note { font-size: 0.75rem; color: var(--ink-soft); }
+
+.scen-rows {
+  margin: 0.7rem 0 0;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 0.55rem;
+  display: grid;
+  gap: 0.28rem;
+}
+.scen-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  font-size: 0.83rem;
+}
+.scen-row .k { color: var(--ink-soft); }
+.scen-row .v { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* The difference tile spans the row: it is the sentence the page is making,
+   not a third scenario. */
+.scen-diff {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+@media (min-width: 46rem) {
+  .scen-diff { grid-column: 1 / -1; }
+}
+.scen-diff .scen-name { color: var(--accent); }
+.scen-diff .scen-rows { border-top-color: var(--accent); }
+/* The difference tile spans both columns, but its rows must not: a label and a
+   figure stretched across the full width leave the eye nothing to follow. */
+@media (min-width: 46rem) {
+  .scen-diff .scen-rows {
+    grid-template-columns: 1fr 1fr;
+    column-gap: 2.2rem;
+  }
+}
+
+.tbl-fallback { margin-top: 0.9rem; }
+.tbl-fallback > summary {
+  cursor: pointer;
+  font-size: 0.83rem;
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- footer */
+footer {
+  border-top: 1px solid var(--line);
+  padding-top: 0.9rem;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+/* Attribution and licence, set apart from the disclaimers above them. */
+.byline { margin-top: 0.6rem; }
+.byline a { color: var(--accent); }
+footer p { margin-bottom: 0.35rem; }
+
+.vh {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <h1>Сколько стоит выровнять оплату мужчин и женщин</h1>
+    <p class="sub">Калькулятор считает стоимость закрытия необъяснённого разрыва в оплате:
+      минимальный сценарий против полного выравнивания, со страховыми взносами.
+      Всё считается в этой вкладке браузера.</p>
+  </header>
+
+  <!-- =============================== FIRST SCREEN: three numbers, one line -->
+  <section class="headline" aria-labelledby="h-headline">
+    <h2 id="h-headline" class="vh">Главный результат</h2>
+    <div class="figures">
+      <div class="fig">
+        <div class="label">Минимальный сценарий</div>
+        <div class="value num" id="head-min">—</div>
+        <div class="note">довести каждую категорию до допустимого остатка</div>
+      </div>
+      <div class="fig">
+        <div class="label">Полное выравнивание</div>
+        <div class="value num" id="head-full">—</div>
+        <div class="note">свести остаток к нулю везде</div>
+      </div>
+      <div class="fig fig-main">
+        <div class="label">Разница</div>
+        <div class="value num" id="head-diff">—</div>
+        <div class="note">цена выбора между ними</div>
+      </div>
+    </div>
+    <p class="verdict">Это вопрос бюджета, а не только права.</p>
+  </section>
+
+  <!-- ======================================================== self-check -->
+  <!-- ========================================================== controls -->
+  <section aria-labelledby="h-controls">
+    <div class="panel">
+      <div class="section-head">
+        <h2 id="h-controls">Параметры</h2>
+        <span class="hint">Все цифры ниже пересчитываются сразу при вводе.</span>
+      </div>
+
+      <div class="controls">
+        <div class="ctl">
+          <label for="ctl-threshold">Допустимый остаток разрыва, %</label>
+          <input id="ctl-threshold" type="number" step="0.1" min="0" max="100" value="5"
+                 inputmode="decimal">
+          <span class="jur">Внутренний ориентир компании. Закон РФ порога не задаёт:
+            ст. 22 ТК РФ требует равной оплаты за труд равной ценности, ст. 132 запрещает
+            дискриминацию в оплате. Это не
+            разрешённый уровень неравенства.</span>
+        </div>
+
+        <div class="ctl">
+          <label for="ctl-month">Месяц повышения</label>
+          <input id="ctl-month" type="number" step="1" min="1" max="12" value="7"
+                 inputmode="numeric">
+          <span class="jur">1 — январь … 12 — декабрь. Затраты текущего года считаются
+            за оставшиеся месяцы.</span>
+        </div>
+
+        <div class="ctl">
+          <label for="ctl-rate-below">Тариф взносов до предельной базы, %</label>
+          <input id="ctl-rate-below" type="number" step="0.01" min="0" max="100" value="30"
+                 inputmode="decimal">
+          <span class="jur">Россия 2026, единый тариф 30%. Взносы на травматизм (0,2–8,5%)
+            не включены: добавьте свой тариф к обеим ставкам.</span>
+        </div>
+
+        <div class="ctl">
+          <label for="ctl-rate-above">Тариф взносов сверх предельной базы, %</label>
+          <input id="ctl-rate-above" type="number" step="0.01" min="0" max="100" value="15.1"
+                 inputmode="decimal">
+          <span class="jur">Россия 2026, единый тариф сверх предельной базы.</span>
+        </div>
+
+        <div class="ctl">
+          <label for="ctl-ceiling">Единая предельная база за год, ₽</label>
+          <input id="ctl-ceiling" type="number" step="1" min="0" value="2979000"
+                 inputmode="numeric">
+          <span class="jur">Россия 2026, постановление Правительства РФ от 31.10.2025 № 1705.</span>
+        </div>
+
+        <div class="ctl">
+          <label for="ctl-reset">По умолчанию</label>
+          <button type="button" id="ctl-reset">Сбросить к РФ 2026</button>
+          <span class="jur">У МСП с правом на льготу, IT-компаний и других льготников
+            тарифы ниже: подставьте свои.</span>
+        </div>
+      </div>
+
+      <div class="ctl-foot">
+        <div class="scenario" role="group" aria-label="Сценарий для графика и таблицы">
+          <span class="sc-legend">Сценарий ниже</span>
+          <label><input type="radio" name="scenario" value="minimum" checked> Минимальный сценарий</label>
+          <label><input type="radio" name="scenario" value="full"> Полное выравнивание</label>
+        </div>
+        <span class="hint small muted">Переключатель меняет только график и таблицу.
+          Три главные цифры всегда показывают оба сценария.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================= chart -->
+  <section aria-labelledby="h-chart">
+    <div class="panel">
+      <div class="section-head">
+        <h2 id="h-chart">Необъяснённый разрыв по категориям</h2>
+        <span class="hint">До и после, <span id="cap-scenario">Минимальный сценарий</span>.
+          Допустимый остаток <span id="cap-threshold">5%</span>.</span>
+      </div>
+      <div class="chart-box" id="chart"></div>
+      <div class="legend">
+        <span><i class="key key-before"></i>до</span>
+        <span><i class="key key-after"></i>после (<span id="cap-scenario-2">минимальный сценарий</span>)</span>
+        <span><i class="key key-rev"></i>разрыв в пользу женщин, не выравнивается</span>
+        <span><i class="key key-unrel"></i>статистически ненадёжно (* на оси)</span>
+        <span><i class="key key-thresh"></i>допустимый остаток</span>
+      </div>
+      <p class="small muted" style="margin:0.45rem 0 0;">Наведите курсор или перейдите на столбец
+        клавишей Tab, чтобы увидеть цифры; все значения есть и в таблице ниже.</p>
+    </div>
+  </section>
+
+  <!-- =========================================================== summary -->
+  <!-- Twelve money rows in a two-column table read as a wall. The same figures
+       as a KPI row of stat tiles: one column per scenario, one row per measure,
+       the cost line carried by a meter against payroll. The table is kept behind
+       a disclosure so every value stays reachable and copyable. -->
+  <section aria-labelledby="h-summary">
+    <div class="panel">
+      <div class="section-head">
+        <h2 id="h-summary">Оба сценария целиком</h2>
+        <span class="hint">Те же данные, что на графике, в сумме по всем категориям.</span>
+      </div>
+      <div class="scen-grid" id="scen-grid"></div>
+      <details class="tbl-fallback">
+        <summary>Все цифры таблицей</summary>
+        <div class="scroller">
+          <table class="summary">
+            <caption class="vh">Итоги обоих сценариев</caption>
+            <tbody id="summary-body"></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ============================================================= table -->
+  <section aria-labelledby="h-table">
+    <div class="panel">
+      <div class="section-head">
+        <h2 id="h-table">По категориям</h2>
+        <span class="hint">Положительный разрыв — в пользу мужчин. Таблица прокручивается вбок.</span>
+      </div>
+      <div class="scroller">
+        <table>
+          <caption class="vh">Разрыв в оплате и стоимость выравнивания по категориям</caption>
+          <thead id="cat-head"></thead>
+          <tbody id="cat-body"></tbody>
+          <tfoot id="cat-foot"></tfoot>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ upload -->
+  <section aria-labelledby="h-upload">
+    <div class="panel">
+      <div class="section-head">
+        <h2 id="h-upload">Ваши данные</h2>
+        <span class="hint">Сейчас показаны: <span id="data-source">демо-данные</span></span>
+      </div>
+
+      <div class="privacy">
+        <p><strong>Всё считается в вашем браузере, файл никуда не загружается.</strong></p>
+        <p class="small">Файл читается через <code>FileReader</code> и не покидает эту вкладку.
+          Страница не делает ни одного сетевого запроса: ни шрифтов, ни библиотек, ни аналитики.
+          Откройте вкладку Network в инструментах разработчика и перезагрузите страницу: она останется пустой.</p>
+      </div>
+
+      <div class="upload-row">
+        <label for="csv-input" class="vh">Файл CSV</label>
+        <input type="file" id="csv-input" accept=".csv,text/csv,text/plain">
+        <button type="button" id="btn-demo" hidden>Вернуть демо-данные</button>
+        <!-- data: URI, substituted at build time from build/sample.csv — the page
+             carries the sample with it rather than fetching a neighbouring file. -->
+        <a class="btn-link" id="sample-csv"
+           href="__SAMPLE_CSV_DATA_URI__"
+           download="pay-gap-sample-ru.csv">Скачать пример файла</a>
+      </div>
+
+      <p class="small muted" style="margin-top:0.6rem">
+        Обязательные столбцы: <code>category</code>, <code>gender</code>, <code>base_salary</code>,
+        <code>variable_pay</code>, <code>tenure_years</code>, <code>grade</code>.
+        Необязательные: <code>fte</code> (по умолчанию 1,0), <code>months_worked</code> (по умолчанию 12).
+        Разделитель — запятая или точка с запятой. Суммы — годовые, в рублях.
+      </p>
+
+      <div id="csv-messages" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ method -->
+  <section aria-labelledby="h-method">
+    <details class="method" id="method">
+      <summary id="h-method">Методика <span class="sm">: все величины в порядке расчёта</span></summary>
+      <div class="method-body">
+
+        <h3>1. Приведение к полной ставке</h3>
+        <p>Оплату сотрудников на неполной ставке и проработавших неполный год приводим к полной
+          ставке и полному году до расчёта разрыва, чтобы сотрудник на 0,5 ставки не выглядел
+          недоплаченным.</p>
+        <div class="formula">normalised_pay = pay / fte / (months_worked / 12)
+total_pay     = base_salary + variable_pay      (обе части приведены)</div>
+        <p class="small muted">Затраты в конце пересчитываются обратно в реальные деньги: повышение
+          сотруднику на 0,5 ставки стоит компании половину.</p>
+
+        <h3>2. Нескорректированный разрыв</h3>
+        <p>Внутри каждой категории берём среднее и медиану всей оплаты отдельно у мужчин и у
+          женщин. Положительный разрыв — в пользу мужчин, отрицательный — в пользу женщин.</p>
+        <div class="formula">raw_gap_% = (mean_M − mean_F) / mean_M × 100
+разрыв по медиане считается так же</div>
+        <p>Разрыв в переменной части считается и показывается отдельно: частый случай —
+          оклады выровнены, а разрыв сидит в премиях.</p>
+
+        <h3>3. Объяснённая и необъяснённая часть</h3>
+        <p>Внутри каждой категории — линейная регрессия (метод наименьших квадратов) всей оплаты
+          на грейд и стаж; коэффициенты решаются напрямую из нормальных уравнений, без библиотек.
+          Часть разрыва, которую дают различия в грейде и стаже, — объяснённая; остальное —
+          необъяснённый остаток. Выравнивается только остаток.</p>
+        <div class="formula">total_pay ≈ intercept + coef_grade × grade + coef_tenure × tenure_years
+explained_%   = разрыв, предсказанный разницей грейда и стажа мужчин и женщин
+unexplained_% = raw_gap_% − explained_%</div>
+        <p class="small muted">Слово <em>регрессия</em> встречается только здесь. В остальных
+          местах две величины названы просто: <em>объяснено грейдом и стажем</em> и
+          <em>необъяснённый остаток</em>.</p>
+        <div class="scroller" id="method-regression"></div>
+
+        <h3>4. Кому повышаем</h3>
+        <p>Один способ: сотрудникам того пола, против которого разрыв, если их оплата ниже
+          медианы категории.
+          Повышение распределяется пропорционально тому, насколько каждый не дотягивает до
+          медианы.</p>
+        <div class="formula">shortfall_i = max(0, median_category − pay_i)
+share_i     = shortfall_i / Σ shortfall</div>
+
+        <h3>5. Два сценария</h3>
+        <p>Оба считаются одновременно на одних и тех же данных. Различаются только тем, где
+          останавливаются.</p>
+        <ol>
+          <li><strong>Минимальный сценарий</strong>: повышаем оплату, пока необъяснённый остаток
+            категории не опустится до допустимого. Категории, где он уже ниже, не трогаем.</li>
+          <li><strong>Полное выравнивание</strong>: повышаем оплату, пока остаток не станет
+            нулевым, во всех категориях.</li>
+        </ol>
+        <p>Разница между двумя суммами складывается из двух частей: остатка, который минимальный
+          сценарий оставляет на уровне допустимого в каждой поднятой категории, и категорий,
+          где остаток уже ниже допустимого, — их трогает только полное выравнивание.
+          На демо-данных большая часть разницы приходится на первую часть.</p>
+        <p><strong>Категории, где разрыв в пользу женщин, не выравниваются ни в одном сценарии.</strong>
+          Выравнивание идёт только вверх. Такие категории остаются в таблице и на графике.</p>
+
+        <h3>6. Страховые взносы</h3>
+        <p>Считаются с прибавки к окладу, а не со всего оклада, и делятся на часть до единой
+          предельной базы и часть сверх неё.</p>
+        <div class="formula">contributions = rate_below × min(raise, max(0, ceiling − base_before))
+              + rate_above × max(0, base_before + raise − max(ceiling, base_before))</div>
+        <p>Одна формула покрывает и жёсткий потолок, и пониженный тариф сверх него, и плоскую
+          ставку. Видимое следствие: в высокооплачиваемых категориях выравнивание стоит меньше,
+          чем подсказывает интуиция, потому что часть прибавки сверх предельной базы облагается
+          по 15,1%, а не по 30%.</p>
+        <p class="small muted">Предельная база в модели сравнивается с годовым окладом. Если у
+          сотрудника крупная переменная часть, база в реальности исчерпается раньше и взносы
+          окажутся чуть ниже расчётных. Взносы на травматизм не включены: их тариф зависит от
+          класса профессионального риска.</p>
+
+        <h3>7. Оклад или переменная часть</h3>
+        <p>Разрыв измеряется по всей оплате, а выравнивается через оклад.</p>
+        <blockquote class="caveat">
+          <p>Модель кладёт прибавку в оклад: так коррекция закрепляется, а разовая премия в
+            следующем цикле распределяется заново. Компания вправе решить иначе и закрыть разрыв
+            через переменную часть или сочетанием двух способов. Это меняет и стоимость, и
+            устойчивость результата. Модель не делает этот выбор за пользователя.</p>
+        </blockquote>
+        <p class="small muted">Эффект второго порядка не моделируется: рост оклада поднимает
+          базу будущей премии, если премия считается в процентах от оклада.</p>
+
+        <h3>8. Эффект по годам</h3>
+        <p>При повышении с месяца <em>m</em> текущий год несёт затраты только за оставшиеся
+          месяцы, следующий — полную сумму.</p>
+        <div class="formula">cost_current_year = full_amount × (13 − m) / 12
+cost_next_year    = full_amount</div>
+
+        <h3>9. Итоги</h3>
+        <p>Рубли в текущем году, рубли в следующем году и затраты в процентах к ФОТ до
+          выравнивания. ФОТ здесь — оклад и переменная часть, без страховых взносов.</p>
+        <div class="formula">payroll_uplift_% = total_cost / payroll_before × 100</div>
+
+        <h3>10. Пометка о надёжности</h3>
+        <p>Категория, где меньше 10 сотрудников или меньше 3 человек одного из полов, помечается
+          как <em>статистически ненадёжная</em>. Цифры показываются, но одни они решение нести
+          не должны.</p>
+
+        <h3>Что не входит</h3>
+        <p class="small muted">Объединение работ равной ценности в категории (они приходят
+          готовыми); оптимальное распределение ограниченного бюджета; сравнение способов выбора
+          получателей; несколько юрисдикций сразу; вилки и compa-ratio; юридические выводы.</p>
+      </div>
+    </details>
+  </section>
+
+  <footer>
+    <p><strong>Данные смоделированы, это иллюстрация методики.</strong> Демо-цифры получены
+      генератором с фиксированным зерном и не относятся ни к одной реальной компании.</p>
+    <p>Тарифы взносов и предельная база — значения РФ 2026 по умолчанию, их можно менять.
+      Это не юридическая и не актуарная консультация.</p>
+    <p>Никаких сетевых запросов. Ничего не загружается, не сохраняется и не передаётся.</p>
+    <!-- Attribution sits in the footer, not the header: the first screen belongs to
+         the three figures, and trust here comes from a checkable method rather than
+         a byline. -->
+    <p class="byline">
+      Автор — <strong>Ольга Димитрова</strong>, Comp Budget Lab.
+      <a href="https://www.linkedin.com/in/olga-dimitrova-04311742a/"
+         rel="author noopener">LinkedIn</a>
+    </p>
+    <p class="byline">
+      <a href="https://creativecommons.org/licenses/by/4.0/"
+         rel="license noopener">CC BY 4.0</a>. Можно использовать и переделывать, в том
+      числе в коммерческих целях, с указанием автора.
+    </p>
+  </footer>
+
+</div>
+
+<!-- Part A and part C are not built yet: the page falls back to FIXTURE_RESULT. -->
+<script src="calc.js"></script>
+<script src="csv.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
