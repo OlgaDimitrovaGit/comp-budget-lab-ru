@@ -66,6 +66,16 @@ for i, e in enumerate(ref["emp"]):
         if not isinstance(got, (int, float)) or abs(got - want) > 0.01:
             print("FAIL %s %s excel=%s ref=%s" % (e["id"], h, got, want))
             fail += 1
+    monthly = (("Оклад в месяц до пересмотра", e["base"] / 12), ("Оклад в месяц после пересмотра", e["new_base"] / 12),
+               ("Переменная часть в месяц до пересмотра", e["base"] * e["bonus"] / 12),
+               ("Переменная часть в месяц после пересмотра", e["new_base"] * e["bonus"] / 12),
+               ("Совокупный доход в месяц до пересмотра", e["base"] * (1 + e["bonus"]) / 12),
+               ("Совокупный доход в месяц после пересмотра", e["new_base"] * (1 + e["bonus"]) / 12))
+    for h, want in monthly:
+        got = c.cell(r, hdr[h]).value
+        if not isinstance(got, (int, float)) or abs(got - want) > 0.01:
+            print("FAIL %s %s excel=%s ref=%s" % (e["id"], h, got, want))
+            fail += 1
 
 print("employees checked:", len(ref["emp"]))
 print("FAILURES:", fail)
