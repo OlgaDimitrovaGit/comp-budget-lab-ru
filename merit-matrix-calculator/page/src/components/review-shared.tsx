@@ -17,4 +17,4 @@ export function Field({ label, hint, detail, value, onChange, options, suffix }:
  if (detail) return <div className="field"><span className="field-label">{label}<Detail label={label}>{detail}</Detail></span>{control}{hintLine}</div>;
  return <label className="field"><span className="field-label">{label}</span>{control}{hintLine}</label>;
 }
-export const ratingNames: Record<number,string> = {5:'Выдающийся',4:'Превосходит',3:'Соответствует',2:'Частично соответствует',1:'Не соответствует'};
+export const ratingNames: Record<number,string> = {5:'Значительно превосходит',4:'Превосходит',3:'Соответствует',2:'Частично соответствует',1:'Не соответствует'};

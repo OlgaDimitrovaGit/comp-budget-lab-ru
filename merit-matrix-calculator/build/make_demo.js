@@ -2,26 +2,33 @@
  * Builds the full demo for the merit workbook: ../sample-employees.csv and
  * ../sample-salary-ranges.csv.
  *
- * Employees are the 212 people of the pay gap calculator demo (same seeded
- * generator, same base pay, in roubles). This script only adds what a merit
- * review needs and that generator does not have: a rating, hire and
- * last-change dates, and salary ranges per category and grade.
+ * Employees are the 212 people of the shared demo company
+ * (../../demo-company/employees.csv, same base pay, in roubles). This script
+ * only adds what a pay review needs and that file does not have: a rating,
+ * hire and last-change dates, and salary ranges per category and grade.
  *
  *   node make_demo.js            -> writes ../sample-employees.csv and ../sample-salary-ranges.csv
  */
 'use strict';
 const fs = require('fs');
 const path = require('path');
-// The pay gap calculator's engine: pay-gap-calculator/build/calc.js in a folder next to this
-// artefact's folder, or in a subfolder of one
-const ROOT = path.join(__dirname, '..', '..');
-const CALC = require([ROOT, ...fs.readdirSync(ROOT).map(d => path.join(ROOT, d))]
-  .map(d => path.join(d, 'pay-gap-calculator', 'build', 'calc.js')).find(f => fs.existsSync(f)));
+// The shared demo company: demo-company/employees.csv at the repository root
+const SOURCE = path.join(__dirname, '..', '..', 'demo-company', 'employees.csv');
+function loadEmployees() {
+  const [head, ...rows] = fs.readFileSync(SOURCE, 'utf8').trim().split(/\r?\n/);
+  const cols = head.split(',');
+  return rows.map(line => {
+    const v = line.split(',');
+    const e = Object.fromEntries(cols.map((c, i) => [c, v[i]]));
+    for (const c of ['base_salary', 'variable_pay', 'tenure_years', 'grade', 'fte', 'months_worked']) e[c] = Number(e[c]);
+    return e;
+  });
+}
 
 const EFF = Date.UTC(2027, 3, 1);      // review effective date, 2027-04-01 (= DEFAULTS in reference_calc.py)
 const LAST_CYCLE = '2026-04-01';       // previous annual review
 const DATA_DATE = '2026-10-31';        // the demo is an export as of this date: no hire or pay change after it
-const SEED = 20261006;                 // separate seed: the pay gap generator's sequence is untouched
+const SEED = 20261006;                 // seed for everything this script adds
 
 // Salary ranges are simulated, not market data. The range mid follows the generator's own pay
 // curve (+12% per grade, +1.5% per year of service), so a typical person sits near mid; the
@@ -78,7 +85,7 @@ const round2 = x => Math.round(x * 100) / 100;
 // Rating distribution, 1..5 (illustrative)
 const RATING_CUM = [0.04, 0.18, 0.70, 0.92, 1.0];
 
-const people = CALC.generateDemoData().map(e => {
+const people = loadEmployees().map(e => {
   if (!MARKET[e.category]) throw new Error(`no salary range for category ${e.category}`);
   const share = e.fte * e.months_worked / 12;
   const base = e.base_salary / share;                 // annual full-time base
