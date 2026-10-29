@@ -61,7 +61,7 @@ c = next(ws for ws in wb.worksheets if ws.title == "Расчёт")
 hdr = {c.cell(3, j).value: j for j in range(1, c.max_column + 1)}
 for i, e in enumerate(ref["emp"]):
     r = 4 + i
-    for h, key in (("Мерит", "increase"), ("Зона CR", "zone"), ("Участвует", "eligible")):
+    for h, key in (("Повышение", "increase"), ("Зона CR", "zone"), ("Участвует", "eligible")):
         got, want = c.cell(r, hdr[h]).value, float(e[key])
         if not isinstance(got, (int, float)) or abs(got - want) > 0.01:
             print("FAIL %s %s excel=%s ref=%s" % (e["id"], h, got, want))

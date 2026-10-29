@@ -2,8 +2,8 @@
 """
 The plan-vs-actual payroll budget dataset behind the dashboard.
 
-Built on top of the pay-gap calculator's demo dataset (212 employees,
-7 departments), so both tools describe the same modelled company.
+Built on top of the shared demo company (demo-company/employees.csv:
+212 employees, 7 departments), so all tools describe the same modelled company.
 
 Three figures per department and month:
   plan     — payroll budget: base plus variable pay, WITHOUT employer
@@ -24,20 +24,19 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
-def _find_paygap():
-    """Locate the pay-gap calculator's demo data, which this dataset is built on.
+def _find_source():
+    """Locate the shared demo company, which this dataset is built on.
 
-    In the repository each tool has a folder of its own, so the data sits at
-    <repo>/pay-gap-calculator/build/excel.
+    It sits at <repo>/demo-company/employees.csv.
     """
     path = os.path.normpath(os.path.join(
-        HERE, "..", "..", "pay-gap-calculator", "build", "excel"))
-    if os.path.exists(os.path.join(path, "demo-data.csv")):
+        HERE, "..", "..", "demo-company", "employees.csv"))
+    if os.path.exists(path):
         return path
-    raise SystemExit("demo-data.csv not found in " + path)
+    raise SystemExit("employees.csv not found: " + path)
 
 
-PAYGAP = _find_paygap()
+SOURCE = _find_source()
 
 # The seed is a date rather than an arbitrary number, so that it means something.
 SEED = 20261028
@@ -119,8 +118,7 @@ DEPARTMENT_SIGN = {
 
 def load_source():
     """Reads the source dataset. Never modifies it."""
-    path = os.path.join(PAYGAP, "demo-data.csv")
-    with open(path, encoding="utf-8") as fh:
+    with open(SOURCE, encoding="utf-8") as fh:
         return list(csv.DictReader(fh))
 
 

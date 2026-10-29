@@ -31,7 +31,7 @@ export function Waterfall() {
  const full = inYear+rest;
  const steps = [
   {name:'ФОТ со взносами сейчас',short:['Сейчас','со взн.'],amount:current,kind:'total',start:0,end:current},
-  {name:`Мерит, ${p.span}`,short:['Мерит'],amount:merit,kind:'merit',start:current,end:inYear},
+  {name:`Повышение, ${p.span}`,short:['Повышение'],amount:merit,kind:'merit',start:current,end:inYear},
   {name:`ФОТ со взносами ${p.year}`,short:[String(p.year),'со взн.'],amount:inYear,kind:'total',start:0,end:inYear},
   {name:'Эффект полного года',short:['Эффект','полного года'],amount:rest,kind:'annual',start:inYear,end:full},
   {name:`ФОТ со взносами ${p.next}`,short:[String(p.next),'со взн.'],amount:full,kind:'total',start:0,end:full},
@@ -43,7 +43,7 @@ export function Waterfall() {
  const g = narrow ? {w:332,x0:22,step:64,bar:40,brk:2} : {w:800,x0:44,step:156,bar:84,brk:15};
  const value=(s:typeof steps[number])=>`${s.kind==='total'?'':'+'}${million(s.amount)}`;
  const label=(s:typeof steps[number])=>s.short;
- return <section className="section waterfall-section"><div className="section-head"><div><h2>Рост ФОТ со взносами: {p.year} и эффект полного года в {p.next}</h2><p className="subtitle">В {p.next} — только перенос пересмотра {p.year}. Пересмотр {p.next} не учтён.</p></div><Detail>Здесь ФОТ — оклады и переменная часть плюс страховые взносы работодателя. Мерит считается с месяца пересмотра: {p.span}, {p.monthsText}. Эффект полного года — те же повышения за оставшиеся месяцы года. ФОТ {p.next} — текущий ФОТ плюс этот пересмотр за 12 месяцев. Пересмотр {p.next} не учтён.</Detail></div>
+ return <section className="section waterfall-section"><div className="section-head"><div><h2>Рост ФОТ со взносами: {p.year} и эффект полного года в {p.next}</h2><p className="subtitle">В {p.next} — только переходящий эффект пересмотра {p.year}. Пересмотр {p.next} не учтён.</p></div><Detail>Здесь ФОТ — оклады и переменная часть плюс страховые взносы работодателя. Повышение считается с месяца пересмотра: {p.span}, {p.monthsText}. Эффект полного года — те же повышения за месяцы, не попавшие в {p.year}. ФОТ {p.next} — текущий ФОТ плюс этот пересмотр за 12 месяцев. Пересмотр {p.next} не учтён.</Detail></div>
  <div className="chart-surface">
  <div className="waterfall-scroll"><svg className={`waterfall ${narrow?'narrow':''}`} viewBox={`0 22 ${g.w} 261`} aria-label={`Каскад: ФОТ со взносами растёт с ${million(current)} до ${million(inYear)} в ${p.year} и до ${million(full)} в ${p.next}`} role="img">
  <line className="chart-base" x1={g.brk-1} x2={g.w-2} y1="225" y2="225"/>
@@ -60,8 +60,8 @@ export function Waterfall() {
 export function MeritMatrix() {
  const data = useData();
  const [active,setActive]=useState<{rating:number;zone:number;n:number;rub:number;pct:number}|null>(null);
- return <section className="section matrix-section"><div className="section-head"><div><h2>Матрица мерита: среднее повышение участников, % от оклада</h2></div><Detail>Среднее повышение по мериту в % от оклада до пересмотра. В каждой клетке — только участники пересмотра. «—» — участников в клетке нет; 0% — участники в клетке повышения не получают.</Detail></div>
- <div className="chart-surface">{active&&<div className="chart-popover" role="status"><strong>{ratingNames[active.rating]} · {ZONES[active.zone]}</strong><div className="detail-line"><span>Среднее повышение</span><b>{active.pct.toFixed(1).replace('.',',')}%</b></div><div className="detail-line"><span>Участников</span><b>{active.n}</b></div><div className="detail-line"><span>Мерит на оклады за год</span><b>{rub(active.rub)}</b></div></div>}
+ return <section className="section matrix-section"><div className="section-head"><div><h2>Матрица повышений: среднее повышение участников, % от оклада</h2></div><Detail>Среднее повышение в % от оклада до пересмотра. В каждой клетке — только участники пересмотра. «—» — участников в клетке нет; 0% — участники в клетке повышения не получают.</Detail></div>
+ <div className="chart-surface">{active&&<div className="chart-popover" role="status"><strong>{ratingNames[active.rating]} · {ZONES[active.zone]}</strong><div className="detail-line"><span>Среднее повышение</span><b>{active.pct.toFixed(1).replace('.',',')}%</b></div><div className="detail-line"><span>Участников</span><b>{active.n}</b></div><div className="detail-line"><span>Прибавка к окладам за год</span><b>{rub(active.rub)}</b></div></div>}
  <div className="matrix-wrap"><table className="matrix"><thead><tr><th>Рейтинг / CR до пересмотра</th>{ZONES.map(z=><th key={z}>{z}</th>)}</tr></thead><tbody>{[...data.matrix.rows].reverse().map(row=><tr key={row.rating}><th>{ratingNames[row.rating]}</th>{row.cells.map((cell,i)=>{const heat=cell.pct===0?0:cell.pct<3?1:cell.pct<8?2:cell.pct<16?3:cell.pct<22?4:5;return <td key={i} className={cell.n===0?'heat-empty':heat===0?'heat-zero':`heat-${heat}`} tabIndex={cell.n?0:undefined} aria-label={`${ratingNames[row.rating]}, ${ZONES[i]}, участников: ${cell.n}, ${cell.pct.toFixed(1).replace('.',',')}%`} onMouseEnter={()=>cell.n&&setActive({rating:row.rating,zone:i,...cell})} onMouseLeave={()=>setActive(null)} onFocus={()=>setActive({rating:row.rating,zone:i,...cell})} onBlur={()=>setActive(null)} onClick={()=>cell.n&&setActive(active?.rating===row.rating&&active.zone===i?null:{rating:row.rating,zone:i,...cell})}>{cell.n>0?(heat===0?'0%':`${cell.pct.toFixed(1).replace('.',',')}%`):'—'}</td>;})}</tr>)}</tbody></table></div>
  <div className="chart-footer matrix-footer"><div className="heat-legend section-note"><span>0%</span>{[1,2,3,4,5].map(i=><i key={i} className={`heat-${i}`}/>)}<span>25%</span></div><span className="section-note">— нет участников</span></div></div></section>;
 }
