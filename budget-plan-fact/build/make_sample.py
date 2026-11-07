@@ -24,7 +24,7 @@ MONTHS = ["янв", "фев", "мар", "апр", "май", "июн",
           "июл", "авг", "сен", "окт", "ноя", "дек"]
 FACT_MONTHS = 8
 
-# Department -> monthly plan (roubles, payroll without social contributions)
+# Department -> monthly plan (roubles, total payroll)
 # and actuals through August. Sales underspends, Support overspends; the
 # forecast for September to December is the plan itself.
 # Actuals are listed month by month rather than derived from the plan: the same

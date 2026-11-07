@@ -6,8 +6,8 @@ Built on top of the shared demo company (demo-company/employees.csv:
 212 employees, 7 departments), so all tools describe the same modelled company.
 
 Three figures per department and month:
-  plan     — payroll budget: base plus variable pay, WITHOUT employer
-             contributions (in Russian practice "ФОТ" excludes them)
+  plan     — payroll budget: one total figure, modelled from the employees'
+             base and variable pay
   fact     — actuals Jan-Aug; empty from September
   forecast — Sep-Dec projection: plan carried on the department's own
              run-rate deviation
