@@ -25,7 +25,7 @@
     <button class="theme-btn" id="theme-btn" type="button" aria-label="Тема: авто. Переключить на светлую"><svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg><span id="theme-name">Тема: авто</span></button>
   </div>
   <header>
-    <h1 class="page-title">План-факт ФОТ: <span class="title-second">где исполнение бюджета расходится с планом и на сколько</span></h1>
+    <h1 class="page-title">План-факт ФОТ: <span class="title-second">исполнение бюджета 2027 года</span></h1>
     <p class="lede" id="sub" style="margin-top:18px"></p>
   </header>
 
@@ -40,7 +40,7 @@
   </section>
 
   <section class="panel p-5 sm:p-7">
-    <h2 class="font-heading text-lg font-bold">План и факт по месяцам <span class="ml-1 text-xs font-normal text-muted-foreground">млн ₽</span></h2>
+    <h2 class="font-heading text-lg font-bold">План-факт по месяцам <span class="ml-1 text-xs font-normal text-muted-foreground">млн ₽</span></h2>
     <select id="filter" aria-label="Подразделение" class="select-control mt-3"></select>
     <div class="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-[11px] font-bold uppercase text-muted-foreground" id="legend">
       <span class="legend-item"><i class="legend-plan"></i>План</span>
@@ -59,7 +59,7 @@
 
   <section class="panel overflow-hidden">
     <div class="border-b border-border px-5 py-5 sm:px-7">
-      <h2 class="font-heading text-lg font-bold">По подразделениям</h2>
+      <h2 class="font-heading text-lg font-bold">План-факт по подразделениям</h2>
     </div>
     <div>
       <table id="tbl" class="w-full border-collapse text-left">
@@ -303,8 +303,8 @@
     // already knows the make-up of their own area of responsibility, and the
     // dashboard is not obliged to count their own departments for them.
     document.getElementById("sub").textContent =
-      "Янв–" + last + ": факт" + (D.factMonths < 12
-        ? " · " + MONTHS[D.factMonths] + "–дек: прогноз" : "");
+      "Факт " + D.factMonths + "M YTD" + (D.factMonths < 12
+        ? " · прогноз " + MONTHS[D.factMonths] + "–дек" : "");
 
     var devAug = (t.augF - t.augP) / t.augP * 100;
     var dev8 = (t.f8 - t.p8) / t.p8 * 100;
@@ -320,10 +320,10 @@
         plan: t.augP, big: t.augF,
         dev: t.augF - t.augP, pct: devAug, fmt: mln },
       { label: "Факт с начала года",
-        sub: "Янв–" + last + ", месяцев: " + D.factMonths,
+        sub: "Факт " + D.factMonths + "M YTD",
         plan: t.p8,
         big: t.f8, dev: t.f8 - t.p8, pct: dev8, fmt: mln },
-      { label: "Ожидаемое исполнение за год", sub: "Факт + прогноз, 12 месяцев",
+      { label: "Ожидаемое исполнение за год", sub: "Прогноз 12M YTD",
         plan: t.pY, big: t.eY,
         dev: t.eY - t.pY, pct: devY, fmt: mln }
     ];
@@ -340,7 +340,7 @@
     document.getElementById("cards").innerHTML = cards.map(function (c) {
       var st = statusOf(c.pct, state.threshold);
       return '<article class="metric-card' + CARD[st] + ' is-' + st + '">'
-        + '<p class="text-xs font-bold uppercase text-muted-foreground">' + c.label + '</p>'
+        + '<p class="text-xs font-bold uppercase text-foreground">' + c.label + '</p>'
         + '<p class="mt-0.5 text-xs text-muted-foreground">' + c.sub + '</p>'
         + '<div class="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">'
         + '<strong class="font-heading text-3xl font-bold tabular-nums whitespace-nowrap sm:text-[34px]">' + c.fmt(c.big) + '</strong>'
@@ -474,14 +474,14 @@
       '<tr class="bg-muted/45 text-[11px] font-bold text-muted-foreground">'
       + '<th rowspan="2" class="table-heading px-7">Подразделение</th>'
       + '<th ' + H1 + ' colspan="2">' + lastFull + '</th>'
-      + '<th ' + H1 + ' colspan="2">Янв–' + lastKey + '</th>'
-      + '<th ' + H1 + ' colspan="2">Год: факт + прогноз</th>'
+      + '<th ' + H1 + ' colspan="2">' + D.factMonths + 'M YTD</th>'
+      + '<th ' + H1 + ' colspan="2">12M YTD</th>'
       + '</tr><tr class="border-b border-border bg-muted/45 text-[10px] font-medium text-muted-foreground">'
       + '<th class="border-l border-border ' + H2 + '">факт<span class="unit">млн ₽</span></th>'
       + '<th class="' + H2 + '">к плану<span class="unit">%</span></th>'
       + '<th class="border-l border-border ' + H2 + '">факт<span class="unit">млн ₽</span></th>'
       + '<th class="' + H2 + '">к плану<span class="unit">%</span></th>'
-      + '<th class="border-l border-border ' + H2 + '">ожидание<span class="unit">млн ₽</span></th>'
+      + '<th class="border-l border-border ' + H2 + '">прогноз<span class="unit">млн ₽</span></th>'
       + '<th class="' + H2 + '">к плану<span class="unit">%</span></th>'
       + '</tr>';
 
@@ -519,10 +519,10 @@
         + '<td data-l="" class="px-7 py-4 font-semibold">' + name + '</td>'
         + '<td data-l="' + lastFull + ', факт, млн ₽" class="' + VAL + '">' + mlnBare(o.augF) + '</td>'
         + dev(lastFull + ', к плану', dAug, o.augF - o.augP)
-        + '<td data-l="Янв–' + lastKey + ', факт, млн ₽" class="' + VAL + '">' + mlnBare(o.f8) + '</td>'
-        + dev('Янв–' + lastKey + ', к плану', d8, o.f8 - o.p8)
-        + '<td data-l="Год, ожидание, млн ₽" class="' + VAL + '">' + mlnBare(o.eY) + '</td>'
-        + dev('Год, к плану', dY, o.eY - o.pY)
+        + '<td data-l="' + D.factMonths + 'M YTD, факт, млн ₽" class="' + VAL + '">' + mlnBare(o.f8) + '</td>'
+        + dev(D.factMonths + 'M YTD, к плану', d8, o.f8 - o.p8)
+        + '<td data-l="12M YTD, прогноз, млн ₽" class="' + VAL + '">' + mlnBare(o.eY) + '</td>'
+        + dev('12M YTD, к плану', dY, o.eY - o.pY)
         + '</tr>';
     }
 

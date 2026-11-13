@@ -132,7 +132,7 @@ def build(template_name="template.html", out_name="dashboard.html"):
         "factMonths": FACT_MONTHS,
         "threshold": SIGNAL_THRESHOLD,
         "comment": read_comment(),
-        "commentDate": "31.08.2026",
+        "commentDate": "31.08.2027",
         "built": datetime.date.today().strftime("%d.%m.%Y"),
     }
 

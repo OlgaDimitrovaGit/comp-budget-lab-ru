@@ -10,7 +10,7 @@
 |---|---|---|
 | Пересмотр зарплат: бюджет и результат (матрица повышений) | [калькулятор](https://olgadimitrovagit.github.io/comp-budget-lab-ru/merit-matrix-calculator/) | [merit-model.xlsx](merit-matrix-calculator/merit-model.xlsx) |
 | План-факт ФОТ | [дашборд](https://olgadimitrovagit.github.io/comp-budget-lab-ru/budget-plan-fact/) | [budget-plan-fact-model.xlsx](budget-plan-fact/budget-plan-fact-model.xlsx) |
-| Календарь вакансий: сколько открытые позиции стоят в 2027 году | [календарь](https://olgadimitrovagit.github.io/comp-budget-lab-ru/vacancy-calendar/) | [vacancy-calendar-model.xlsx](vacancy-calendar/vacancy-calendar-model.xlsx) |
+| Календарь вакансий: влияние на бюджет | [календарь](https://olgadimitrovagit.github.io/comp-budget-lab-ru/vacancy-calendar/) | [vacancy-calendar-model.xlsx](vacancy-calendar/vacancy-calendar-model.xlsx) |
 
 Как устроен расчёт, формат входных данных и как воспроизвести цифры — в
 README каждой папки.

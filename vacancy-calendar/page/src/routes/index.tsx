@@ -7,7 +7,7 @@ import { DEFAULTS, analyse, loadHistory, loadPositions } from "@/lib/engine.js";
 import { MINUS, rubM, rubK, m0, mln } from "@/lib/format";
 import { Monitor, Moon, Sun } from "lucide-react";
 
-const TITLE = "Календарь вакансий: сколько открытые позиции на самом деле стоят в 2027 году";
+const TITLE = "Календарь вакансий: влияние на бюджет";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -544,18 +544,17 @@ function Dashboard() {
         <ThemeToggle />
       </div>
       <header className="mb-6 border-b border-border pb-6">
-        <h1 className="page-title">Календарь вакансий:{" "}<span className="title-second">сколько открытые позиции на самом деле стоят в 2027 году</span></h1>
+        <h1 className="page-title">Календарь вакансий:{" "}<span className="title-second">влияние на бюджет</span></h1>
         <div className="mt-[18px] grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <p className="lede">
             <span className="block">В заявках «всех с января»,<br className="sm:hidden" /> а люди выходят позже.</span>
             <span className="block">Сколько открытые позиции будут стоить при реалистичных датах выхода?</span>
             <span className="block">Чей выход перенести, чтобы уложиться в лимит ФОТ?</span>
-            <span className="block">Что перейдёт в 2028 год?</span>
+            <span className="block">Влияние на следующий финансовый год.</span>
           </p>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <span className="flex items-center gap-2 text-muted-foreground"><i className={`size-2 rounded-full ${pos.name ? "bg-good" : "bg-muted-foreground"}`} />{source}</span>
             <button className="btn" onClick={openData}>↑ Загрузить свои данные</button>
-            <a className="link" href="method.html">Как считаем: метод по шагам</a>
           </div>
         </div>
       </header>
@@ -602,9 +601,10 @@ function Dashboard() {
 
       <details ref={dataRef} open={dataOpen} onToggle={(e) => setDataOpen(e.currentTarget.open)} className="panel group mt-5 scroll-mt-4">
         <summary className="flex cursor-pointer list-none items-center justify-between p-4 text-sm font-semibold sm:p-5">
-          Ваши данные и Excel-модель <span className="text-muted-foreground transition-transform group-open:rotate-180">▾</span>
+          Ваши данные, Excel-модель, взносы и метод <span className="text-muted-foreground transition-transform group-open:rotate-180">▾</span>
         </summary>
         <div className="space-y-5 border-t border-border p-4 text-sm leading-relaxed sm:p-5">
+          <p><b>Как считаем:</b> <a className="link" href="method.html">метод по шагам</a></p>
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <label className="btn">

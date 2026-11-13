@@ -105,6 +105,8 @@ body { margin: 0; background: var(--background); color: var(--foreground); font-
 .title-second { color: var(--muted-foreground); }
 .header-bottom { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 36px; align-items: end; margin-top: 18px; }
 .lede { color: var(--muted-foreground); max-width: 840px; font-size: 13px; line-height: 1.75; }
+/* Desktop: one question per line, so no line starts mid-question. Phone: questions flow. */
+@media(min-width:768px) { .lede-line { display: block; } }
 .source-action { display: flex; align-items: center; gap: 17px; white-space: nowrap; min-width: 0; }
 .source-action .source-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .source-label { color: var(--muted-foreground); font-size: 12px; }

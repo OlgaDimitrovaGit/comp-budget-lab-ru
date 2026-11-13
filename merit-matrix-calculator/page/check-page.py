@@ -62,7 +62,8 @@ def m(x):
 
 
 def kpis(p):
-    return p.locator(".kpi-value").all_inner_texts()
+    """Card values with no-break spaces as plain ones: a unit is glued to its number."""
+    return [t.replace(" ", " ").replace(" ", " ") for t in p.locator(".kpi-value").all_inner_texts()]
 
 
 with sync_playwright() as pw:

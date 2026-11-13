@@ -72,7 +72,7 @@ export function loadEmployees(rows) {
   if (!rows.length || rows.length < 2) throw new Error('Нужна строка заголовков и хотя бы один сотрудник.');
   const { head, list } = records(rows);
   const missing = REQUIRED.filter(c => !head.includes(c));
-  if (missing.length) throw new Error(`Нет колонок: ${missing.join(', ')}. Формат — как в образцах CSV.`);
+  if (missing.length) throw new Error(`Нет колонок: ${missing.join(', ')}. Формат должен быть как в образцах CSV.`);
   const hasCategory = head.includes('category');
   const emp = list.map((r, i) => {
     const line = i + 2;
