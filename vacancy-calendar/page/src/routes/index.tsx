@@ -127,7 +127,7 @@ function Waterfall({ r }: { r: R }) {
     { label: "Прогноз", lo: 0, hi: real, v: real, total: true, tip: <><b>Реалистичный прогноз</b><br />{rubM(real)}: новые сотрудники с реалистичных дат выхода минус экономия на текучести</> },
     ...(hasMoves ? [
       { label: "Перенос выхода", lo: after, hi: real, v: r.moves, total: false, tip: <><b>Перенос выхода {rubM(r.moves, { sign: true })}</b><br />Выход перенесён по {r.moved_roles} {plural(r.moved_roles, ["позиции", "позициям", "позициям"])}, в среднем на {avgMonths(r)} мес.</> },
-      { label: "После переноса", lo: 0, hi: after, v: after, total: true, tip: <><b>После переноса выхода</b><br />{rubM(after)}: ФОТ по вакансиям в пределах лимита {rubM(r.hiring_budget)}</> },
+      { label: "После переноса", lo: 0, hi: after, v: after, total: true, tip: <><b>После переноса выхода</b><br />{rubM(after)}: ФОТ на вакансии в пределах лимита {rubM(r.hiring_budget)}</> },
     ] : []),
   ];
   const top = Math.max(...bars.map((x) => x.hi), 1);
@@ -164,7 +164,10 @@ function Waterfall({ r }: { r: R }) {
       </div>
       <div className="mt-2 grid gap-1 border-t border-border pl-0 pt-2 sm:gap-6 sm:pl-10" style={cols}>
         {bars.map((x) => (
-          <div key={x.label} className="hyphens-auto text-center text-[10px] leading-tight text-muted-foreground sm:text-xs" lang="ru">{x.label}</div>
+          <div key={x.label} className="-mx-0.5 text-center text-[9px] leading-tight text-muted-foreground sm:mx-0 sm:text-xs">
+            {/* Phone columns are ~43px: whole words only, 9px like the values above the bars, and the one ten-letter word gets a shorter form. */}
+            <span className="sm:hidden">{x.label === "Незакрытые вакансии" ? <>Не<br />закрыты</> : x.label}</span><span className="hidden sm:inline">{x.label}</span>
+          </div>
         ))}
       </div>
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -199,7 +202,7 @@ function YearCards({ r }: { r: R }) {
   return (
     <div className="grid gap-5 @2xl:grid-cols-2">
       <Card
-        title="ФОТ по вакансиям 2027 года с учётом текучести"
+        title="ФОТ на вакансии 2027 года с учётом текучести"
         big={noMoves ? rubM(real) : <><span className="text-muted-foreground">{rubM(real)}</span> → {rubM(after)}</>}
         line={noMoves
           ? <span className="font-medium text-good">Переносить выход не нужно: до лимита ещё {rubM(-r.gap)}</span>
@@ -293,26 +296,36 @@ function Departments({ r }: { r: R }) {
           </tbody>
         </table>
       </div>
+      {/* Phone: the column header is said once above the cards, and each card's four amounts
+          sit in fixed columns, so the eye compares departments down the list like table rows. */}
       <div className="num flex flex-col gap-2 md:hidden">
+        <div className="flex items-baseline justify-between gap-2 px-3 text-xs text-muted-foreground">
+          <span>Подразделение</span><span>Экономия к заявленному</span>
+        </div>
         {lv > 0 && (
           <div className="order-1 rounded-md border border-border p-3 text-muted-foreground">
-            <div className="flex items-baseline justify-between gap-2">
+            <div className="flex items-baseline justify-between gap-3">
               <span className="font-medium">{lvLabel}</span>
-              <span className="text-xl font-semibold"><span className="mr-1.5 text-xs font-normal">Экономия к заявленному</span>{m0(lv)}</span>
+              <span className="text-xl font-semibold">{m0(lv)}</span>
             </div>
             <div className="mt-1 text-xs leading-relaxed">{lvNote}</div>
           </div>
         )}
         {[...shown.map((d) => ({ ...d, isTotal: false })), ...(withTotal ? [{ ...tot, department: "Итого", isTotal: true }] : [])].map((d) => (
           <div key={d.department} className={`rounded-md border border-border p-3 ${d.isTotal ? "order-2 bg-muted" : ""}`}>
-            <div className="flex items-baseline justify-between gap-2">
+            <div className="flex items-baseline justify-between gap-3">
               <span className={d.isTotal ? "font-semibold" : "font-medium"}>{d.department}</span>
-              <span className="text-xl font-semibold"><span className="mr-1.5 text-xs font-normal text-muted-foreground">Экономия к заявленному</span>{m0(d.savings)}</span>
+              <span className="text-xl font-semibold">{m0(d.savings)}</span>
             </div>
-            <div className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              <div>{d.roles} {plural(d.roles, ROLES)} · выход перенесён по {d.moved}</div>
-              <div>Заявлено бизнесом {m0(d.requested)} · реалистичный прогноз {m0(d.realistic)} · после переноса выхода {m0(d.after_moves)} · в годовом выражении {m0(d.full_year)}</div>
-            </div>
+            <div className="text-xs text-muted-foreground">{d.roles} {plural(d.roles, ROLES)}, выход перенесён по {d.moved}</div>
+            <dl className="mt-2 grid grid-cols-4 gap-2 border-t border-border pt-2 text-xs">
+              {([["Заявлено", d.requested], ["Прогноз", d.realistic], ["После переноса", d.after_moves], ["За полный год", d.full_year]] as const).map(([l, v]) => (
+                <div key={l} className="flex flex-col justify-between">
+                  <dt className="leading-tight text-muted-foreground">{l}</dt>
+                  <dd className="mt-0.5 text-sm font-medium">{m0(v)}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         ))}
       </div>
@@ -569,7 +582,6 @@ function Dashboard() {
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4">
               <span className="min-w-0">
                 <span className="block text-base font-semibold">Ваши вводные</span>
-                <span className="block text-xs text-muted-foreground">Лимит ФОТ, текущий ФОТ, перенос выхода, воронка, текучесть, закрываемость</span>
               </span>
               <span className="btn shrink-0 group-open:hidden">Изменить ▾</span>
               <span className="btn hidden shrink-0 group-open:inline-flex">Скрыть ▴</span>
@@ -577,7 +589,7 @@ function Dashboard() {
             <div className="border-t border-border p-4"><Scenario f={f} planDate={planDate} r={r} /></div>
           </details>
 
-          <Section title="ФОТ по вакансиям 2027 года, млн ₽: от заявок к лимиту"><Waterfall r={r} /></Section>
+          <Section title="ФОТ на вакансии 2027 года, млн ₽: от заявленного к лимиту"><Waterfall r={r} /></Section>
 
           <YearCards r={r} />
 
