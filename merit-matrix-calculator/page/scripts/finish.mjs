@@ -3,8 +3,10 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { glue } from '../../../nbsp.mjs';
 const HERE = dirname(fileURLToPath(import.meta.url));
-const html = readFileSync(join(HERE, '..', 'dist', 'index.html'), 'utf8');
+// Short words glued to the next one, so no line ends on a preposition.
+const html = glue(readFileSync(join(HERE, '..', 'dist', 'index.html'), 'utf8'));
 const bad = [...html.matchAll(/<(script|link|img|iframe|source)\b[^>]*\b(src|href)=["']?(https?:)?\/\/[^"' >]+/gi)].map(m => m[0]);
 const imports = [...html.matchAll(/@import\s+url\(["']?https?:[^)]+\)|url\(["']?https?:[^)]+\)/gi)].map(m => m[0]);
 if (bad.length || imports.length) {

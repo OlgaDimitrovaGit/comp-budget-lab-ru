@@ -5,6 +5,7 @@ import demoPositions from "../../../sample-positions.csv?raw";
 import demoHistory from "../../../sample-hiring-history.csv?raw";
 import { DEFAULTS, analyse, loadHistory, loadPositions } from "@/lib/engine.js";
 import { MINUS, rubM, rubK, m0, mln } from "@/lib/format";
+import { Monitor, Moon, Sun } from "lucide-react";
 
 const TITLE = "Календарь вакансий: сколько открытые позиции на самом деле стоят в 2027 году";
 export const Route = createFileRoute("/")({
@@ -67,23 +68,22 @@ function useTip() {
 }
 
 /* ---------- theme ---------- */
+// Same three-state switch as the merit calculator: auto -> light -> dark.
 function ThemeToggle() {
-  const [dark, setDark] = useState(false);
+  const [theme, setTheme] = useState<"system" | "light" | "dark">("system");
   useEffect(() => {
-    const saved = localStorage.getItem("theme");
-    const d = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-    setDark(d);
-    document.documentElement.classList.toggle("dark", d);
-  }, []);
-  const flip = () => {
-    const d = !dark;
-    setDark(d);
-    document.documentElement.classList.toggle("dark", d);
-    localStorage.setItem("theme", d ? "dark" : "light");
-  };
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const update = () => document.documentElement.classList.toggle("dark", theme === "dark" || (theme === "system" && media.matches));
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, [theme]);
+  const name = theme === "system" ? "авто" : theme === "light" ? "светлая" : "тёмная";
+  const next = theme === "system" ? "светлую" : theme === "light" ? "тёмную" : "авто";
   return (
-    <button onClick={flip} className="btn" aria-label="Переключить тёмную тему">
-      {dark ? "☀ Светлая" : "◐ Тёмная"}
+    <button className="theme-btn" aria-label={`Тема: ${name}. Переключить на ${next}`}
+      onClick={() => setTheme(theme === "system" ? "light" : theme === "light" ? "dark" : "system")}>
+      {theme === "system" ? <Monitor /> : theme === "light" ? <Sun /> : <Moon />}Тема: {name}
     </button>
   );
 }
@@ -526,13 +526,14 @@ function Dashboard() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="masthead">
+        <div className="wordmark"><span className="mark" aria-hidden="true"><i /><i /><i /></span>Comp Budget Lab</div>
+        <ThemeToggle />
+      </div>
       <header className="mb-6 border-b border-border pb-6">
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Календарь вакансий: сколько открытые позиции на самом деле стоят в 2027 году</h1>
-          <div className="shrink-0"><ThemeToggle /></div>
-        </div>
-        <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+        <h1 className="page-title">Календарь вакансий:{" "}<span className="title-second">сколько открытые позиции на самом деле стоят в 2027 году</span></h1>
+        <div className="mt-[18px] grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <p className="lede">
             <span className="block">В заявках «всех с января»,<br className="sm:hidden" /> а люди выходят позже.</span>
             <span className="block">Сколько открытые позиции будут стоить при реалистичных датах выхода?</span>
             <span className="block">Чей выход перенести, чтобы уложиться в лимит ФОТ?</span>
@@ -557,7 +558,7 @@ function Dashboard() {
         <main className="@container min-w-0 space-y-5">
           <Section title="ФОТ 2027 года против лимита">
             <p className="mb-4 text-sm leading-relaxed sm:text-base">{verdict}</p>
-            <div className="grid grid-cols-2 gap-3 @xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 @xl:grid-cols-3">
               <Kpi label="Заявлено бизнесом" value={r.total_requested} target={r.target} />
               <Kpi label="Реалистичный прогноз" value={r.total_realistic} target={r.target} note="сроки найма, текучесть, незакрытые вакансии" />
               <Kpi label="После переноса выхода" value={r.total_after} target={r.target} note={noMoves ? "Переносить выход не нужно" : undefined} />

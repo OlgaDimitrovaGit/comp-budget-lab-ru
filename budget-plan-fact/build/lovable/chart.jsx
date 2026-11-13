@@ -108,7 +108,10 @@ function PayrollChart(p) {
           onMouseMove={(s) => setHover(!!(s && s.isTooltipActive))}
           onMouseLeave={() => setHover(false)}>
           <CartesianGrid vertical={false} stroke="var(--border)" />
-          <XAxis dataKey="month" axisLine={false} tickLine={false} interval={narrow ? 1 : 0}
+          {/* Narrow: every other month, counted back from December so the year-end
+              forecast point always has its label. */}
+          <XAxis dataKey="month" axisLine={false} tickLine={false} interval={0}
+            ticks={narrow ? data.filter((_, i) => (data.length - 1 - i) % 2 === 0).map((d) => d.month) : undefined}
             tick={{ fill: "var(--muted-foreground)", fontSize: fs }} dy={10} />
           <YAxis axisLine={false} tickLine={false} width={narrow ? 58 : 64}
             domain={[p.lo, p.hi]} ticks={ticks} allowDataOverflow

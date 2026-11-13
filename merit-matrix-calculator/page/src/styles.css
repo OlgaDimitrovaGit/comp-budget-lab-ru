@@ -267,3 +267,6 @@ body { margin: 0; background: var(--background); color: var(--foreground); font-
  .source-action { align-items: flex-start; } .source-action .source-label { white-space: normal; overflow: visible; }
 }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+
+/* No one-word last line in running text; checked on real lines by check_wraps.py. */
+@layer base { p, li, dd, figcaption, h1, h2, h3 { text-wrap: pretty; } th, td { text-wrap: balance; } }

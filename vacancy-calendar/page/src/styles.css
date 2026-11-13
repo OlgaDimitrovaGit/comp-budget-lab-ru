@@ -143,3 +143,27 @@
   text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px;
   &:hover { text-decoration-thickness: 2px; }
 }
+
+/* Page top, same as the merit calculator: brand mark, theme switch, title, lede.
+   The mark's teal is the brand colour of all three tools, hence a fixed value. */
+.masthead { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; margin-bottom: 23px; }
+.wordmark { display: flex; align-items: center; gap: 9px; font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: 1.5px; color: var(--foreground); }
+.mark { display: flex; align-items: end; gap: 3px; height: 19px; }
+.mark i { display: block; width: 4px; background: var(--brand-mark); }
+.mark i:nth-child(1) { height: 9px; } .mark i:nth-child(2) { height: 14px; } .mark i:nth-child(3) { height: 19px; background: var(--foreground); }
+.theme-btn { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: var(--muted-foreground); font: inherit; font-size: 12px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background .15s, color .15s; }
+.theme-btn:hover { background: var(--accent); color: var(--accent-foreground); }
+.theme-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.page-title { margin: 0; font-size: 38px; font-weight: 550; line-height: 1.15; letter-spacing: 0; max-width: 970px; }
+.title-second { color: var(--muted-foreground); }
+.lede { margin: 0; color: var(--muted-foreground); max-width: 840px; font-size: 13px; line-height: 1.75; }
+@media (min-width: 1450px) { .page-title { font-size: 44px; } }
+@media (max-width: 767px) {
+  .page-title { font-size: 26px; line-height: 1.25; text-wrap: balance; }
+  .lede { font-size: 12px; }
+}
+:root { --brand-mark: oklch(.53 .068 188); }
+.dark { --brand-mark: oklch(.72 .075 188); }
+
+/* No one-word last line in running text; checked on real lines by check_wraps.py. */
+@layer base { p, li, dd, figcaption, h1, h2, h3 { text-wrap: pretty; } th, td { text-wrap: balance; } }

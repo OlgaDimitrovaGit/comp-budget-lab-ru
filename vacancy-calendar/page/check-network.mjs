@@ -33,7 +33,8 @@ try {
     await input.uploadFile(join(PROJ, file));
     await p.waitForNetworkIdle({ idleTime: 500 }).catch(() => {});
     await new Promise((r) => setTimeout(r, 500));
-    const text = await p.evaluate(() => document.body.innerText);
+    // The build glues short words with no-break spaces; compare as plain spaces.
+    const text = (await p.evaluate(() => document.body.innerText)).replace(/ /g, " ");
     const taken = text.includes(expect);
     console.log(`${kind} file accepted:`, taken ? "yes" : `NO (expected "${expect}" on the page)`);
     if (!taken) failed = true;

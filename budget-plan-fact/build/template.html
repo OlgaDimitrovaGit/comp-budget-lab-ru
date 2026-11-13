@@ -20,9 +20,13 @@
 <main class="min-h-screen bg-background px-4 py-7 text-foreground sm:px-6 lg:px-10 lg:py-10">
 <div class="mx-auto max-w-[1320px] space-y-7">
 
+  <div class="masthead">
+    <div class="wordmark"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>Comp Budget Lab</div>
+    <button class="theme-btn" id="theme-btn" type="button" aria-label="Тема: авто. Переключить на светлую"><svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg><span id="theme-name">Тема: авто</span></button>
+  </div>
   <header>
-    <h1 class="font-heading text-[28px] font-bold leading-tight">План-факт ФОТ</h1>
-    <p class="mt-1 text-sm font-medium text-muted-foreground" id="sub"></p>
+    <h1 class="page-title">План-факт ФОТ: <span class="title-second">где исполнение бюджета расходится с планом и на сколько</span></h1>
+    <p class="lede" id="sub" style="margin-top:18px"></p>
   </header>
 
   <section aria-label="Итоги по ФОТ" class="cards grid gap-4 md:grid-cols-3" id="cards"></section>
@@ -36,10 +40,8 @@
   </section>
 
   <section class="panel p-5 sm:p-7">
-    <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:items-center sm:justify-between">
-      <h2 class="font-heading text-lg font-bold">План и факт по месяцам <span class="ml-1 text-xs font-normal text-muted-foreground">млн ₽</span></h2>
-      <select id="filter" aria-label="Подразделение" class="select-control"></select>
-    </div>
+    <h2 class="font-heading text-lg font-bold">План и факт по месяцам <span class="ml-1 text-xs font-normal text-muted-foreground">млн ₽</span></h2>
+    <select id="filter" aria-label="Подразделение" class="select-control mt-3"></select>
     <div class="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-[11px] font-bold uppercase text-muted-foreground" id="legend">
       <span class="legend-item"><i class="legend-plan"></i>План</span>
       <span class="legend-item"><i class="legend-actual"></i>Факт</span>
@@ -50,14 +52,14 @@
     <!-- The same figures the tooltip shows on hover, as a table for anyone
          who is not using a pointer. -->
     <details class="chart-data mt-4">
-      <summary class="w-fit cursor-pointer py-1 text-xs text-muted-foreground">Цифры по месяцам таблицей</summary>
+      <summary class="w-fit cursor-pointer py-1 text-xs text-muted-foreground">В разрезе месяцев, млн ₽</summary>
       <div class="mt-2 overflow-x-auto"><table id="chartTable"></table></div>
     </details>
   </section>
 
   <section class="panel overflow-hidden">
     <div class="border-b border-border px-5 py-5 sm:px-7">
-      <h2 class="font-heading text-lg font-bold">Подразделения <span class="ml-2 text-xs font-normal text-muted-foreground">по отклонению за год, худшие сверху</span></h2>
+      <h2 class="font-heading text-lg font-bold">По подразделениям</h2>
     </div>
     <div>
       <table id="tbl" class="w-full border-collapse text-left">
@@ -139,6 +141,30 @@
 
 <script>/*LOVABLE_CHART*/</script>
 <script id="payload" type="application/json">"__DATA__"</script>
+<script>
+// Theme switch, same cycle as the merit calculator: auto -> light -> dark.
+// "auto" removes data-theme, so the stylesheet follows the system setting.
+(function () {
+  var ICONS = {
+    system: '<rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>',
+    light: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+    dark: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>'
+  };
+  var NAME = { system: "авто", light: "светлая", dark: "тёмная" };
+  var NEXT = { system: "light", light: "dark", dark: "system" };
+  var NEXT_NAME = { system: "светлую", light: "тёмную", dark: "авто" };
+  var theme = "system";
+  var btn = document.getElementById("theme-btn");
+  btn.addEventListener("click", function () {
+    theme = NEXT[theme];
+    if (theme === "system") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", theme);
+    document.getElementById("theme-icon").innerHTML = ICONS[theme];
+    document.getElementById("theme-name").textContent = "Тема: " + NAME[theme];
+    btn.setAttribute("aria-label", "Тема: " + NAME[theme] + ". Переключить на " + NEXT_NAME[theme]);
+  });
+})();
+</script>
 <script>
 (function () {
   "use strict";

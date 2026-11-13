@@ -17,6 +17,7 @@ after a change to the markup.
 import csv
 import json
 import os
+import subprocess
 import sys
 import datetime
 
@@ -152,6 +153,10 @@ def build(template_name="template.html", out_name="dashboard.html"):
     # being a check.
     with open(out, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(html)
+    # Short words glued to the next one (shared with the other tools), so no
+    # rendered line ends on a preposition.
+    if subprocess.run(["node", os.path.join(HERE, "..", "..", "nbsp.mjs"), out]).returncode:
+        sys.exit("nbsp.mjs failed")
 
     print(f"Written: {out}")
     print(f"Size: {len(html.encode('utf-8')) / 1024:.0f} KB")

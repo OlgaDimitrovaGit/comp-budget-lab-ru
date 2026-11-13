@@ -36,6 +36,11 @@ SUBSET_RANGES.write_text("\n".join([_ranges[0]] + [r for r in _ranges[1:] if tup
                          encoding="utf-8")
 
 
+def page_text(page, sel):
+    """Page text with no-break spaces as plain ones: the build glues short words with them."""
+    return page.inner_text(sel).replace("\u00a0", " ")
+
+
 def check(name, ok, detail=""):
     print(("OK   " if ok else "FAIL ") + name + (f" — {detail}" if detail and not ok else ""))
     if not ok:
@@ -73,20 +78,20 @@ with sync_playwright() as pw:
     v = kpis(p)
     check("demo: 2027 cost = engine", v[0] == m(demo["total"]), f"{v[0]} vs {m(demo['total'])}")
     check("demo: merit % = engine", v[2] == f"{demo['pct']:.2f}%".replace(".", ","), f"{v[2]}")
-    check("demo: headcount label", f"сотрудников: {demo['n']}" in p.inner_text(".source-label"))
+    check("demo: headcount label", f"сотрудников: {demo['n']}" in page_text(p, ".source-label"))
 
     # parameters recalculate; January: both cards equal
     p.get_by_label("Дата пересмотра", exact=True).select_option("янв 2027")
     v = kpis(p)
     check("January: 2027 card = 12-month card", v[0] == v[1], f"{v[0]} vs {v[1]}")
-    check("January: labels follow the date", "12 месяцев 2028" in p.inner_text(".kpi-groups"))
+    check("January: labels follow the date", "12 месяцев 2028" in page_text(p, ".kpi-groups"))
     p.get_by_label("Дата пересмотра", exact=True).select_option("дек 2028")
-    check("Dec 2028: years follow the date", "2028 · с даты пересмотра" in p.inner_text(".kpi-groups") and "12 месяцев 2029" in p.inner_text(".kpi-groups"))
+    check("Dec 2028: years follow the date", "2028 · с даты пересмотра" in page_text(p, ".kpi-groups") and "12 месяцев 2029" in page_text(p, ".kpi-groups"))
     p.get_by_label("Дата пересмотра", exact=True).select_option("апр 2027")
     p.get_by_label("Целевой бюджет повышения", exact=True).fill("3,5")
     j = engine(DEMO, RANGES, {"pool_pct": 3.5})
     j35 = engine(DEMO, RANGES, {"pool_pct": 3.5})
-    check("target merit increase with a comma recalculates", f"{j35['pct'] - 3.5:+.2f}".replace(".", ",").replace("-", "−") + " п.п. к цели" in p.inner_text(".kpi-groups"), p.inner_text(".kpi-groups")[:300])
+    check("target merit increase with a comma recalculates", f"{j35['pct'] - 3.5:+.2f}".replace(".", ",").replace("-", "−") + " п.п. к цели" in page_text(p, ".kpi-groups"), page_text(p, ".kpi-groups")[:300])
     check("target merit increase: cost unchanged by target", kpis(p)[0] == m(j["total"]))
     p.get_by_label("Целевой бюджет повышения", exact=True).fill("4.0")
     p.get_by_label("Потолок повышения", exact=True).select_option("Без ограничения")
@@ -106,11 +111,11 @@ with sync_playwright() as pw:
     inp = p.locator("input[type=file]")
     inp.set_input_files([str(SUBSET), str(SUBSET_RANGES)])
     subset = engine(SUBSET, SUBSET_RANGES, {})
-    p.wait_for_function(f"document.querySelector('.source-label').innerText.includes('сотрудников: {subset['n']}')", timeout=5000)
+    p.wait_for_function(f"document.querySelector('.source-label').innerText.replace(/\u00a0/g, ' ').includes('сотрудников: {subset['n']}')", timeout=5000)
     check("subset loaded: 2027 cost = engine", kpis(p)[0] == m(subset["total"]), f"{kpis(p)[0]} vs {m(subset['total'])}")
-    check("subset loaded: file names in the header", "subset-employees.csv" in p.inner_text(".source-label"))
+    check("subset loaded: file names in the header", "subset-employees.csv" in page_text(p, ".source-label"))
     below = f"{subset['below'][0]} → {subset['below'][1]}\nниже 90% середины вилки"
-    check("subset loaded: below-90% count = engine", below in p.inner_text(".people-strip") and subset["below"] != demo["below"], below)
+    check("subset loaded: below-90% count = engine", below in page_text(p, ".people-strip") and subset["below"] != demo["below"], below)
 
     # broken file: red line, data kept
     tmp = TMP / "broken.csv"
@@ -126,7 +131,7 @@ with sync_playwright() as pw:
     first = rows[1].split(","); first[rcol] = "7"; rows[1] = ",".join(first)
     badr.write_text("\n".join(rows) + "\n", encoding="utf-8")
     inp.set_input_files([str(badr), str(SUBSET_RANGES)])
-    p.wait_for_function("document.querySelector('.import-result.error')?.innerText.includes('от 1 до 5')", timeout=5000)
+    p.wait_for_function("document.querySelector('.import-result.error')?.innerText.replace(/\u00a0/g, ' ').includes('от 1 до 5')", timeout=5000)
     check("rating outside 1-5: error, numbers kept", kpis(p)[0] == m(subset["total"]))
 
     # no category column: ranges matched by grade only, one total row
@@ -141,20 +146,20 @@ with sync_playwright() as pw:
     noc_r.write_text("\n".join(["grade,min,mid,max"] + list(by_grade.values())) + "\n", encoding="utf-8")
     inp.set_input_files([str(noc), str(noc_r)])
     j = engine(noc, noc_r, {})
-    p.wait_for_function("document.querySelector('.source-label').innerText.includes('no-category.csv')", timeout=5000)
+    p.wait_for_function("document.querySelector('.source-label').innerText.replace(/\u00a0/g, ' ').includes('no-category.csv')", timeout=5000)
     check("no category: cost = engine", kpis(p)[0] == m(j["total"]), f"{kpis(p)[0]} vs {m(j['total'])}")
-    check("no category: one total row", "Все сотрудники" in p.inner_text(".category-table"))
+    check("no category: one total row", "Все сотрудники" in page_text(p, ".category-table"))
 
     p.get_by_role("button", name="Вернуть демо-данные").click()
     inp.set_input_files(str(SUBSET))
-    p.wait_for_function("document.querySelector('.import-result.error')?.innerText.includes('Загрузите вилки вместе')", timeout=5000)
+    p.wait_for_function("document.querySelector('.import-result.error')?.innerText.replace(/\u00a0/g, ' ').includes('Загрузите вилки вместе')", timeout=5000)
     check("employee file alone on demo ranges: refused", kpis(p)[0] == m(demo["total"]))
     check("demo restored", kpis(p)[0] == m(demo["total"]))
 
     # own employees with the unchanged sample ranges, both chosen at once: accepted
     inp.set_input_files([str(SUBSET), str(RANGES)])
     try:
-        p.wait_for_function(f"document.querySelector('.source-label').innerText.includes('сотрудников: {subset['n']}')", timeout=5000)
+        p.wait_for_function(f"document.querySelector('.source-label').innerText.replace(/\u00a0/g, ' ').includes('сотрудников: {subset['n']}')", timeout=5000)
         ok = not p.query_selector(".import-result.error")
     except Exception:
         ok = False
@@ -168,7 +173,7 @@ with sync_playwright() as pw:
     ph.get_by_role("button", name="Загрузить свои данные").click()
     ph.wait_for_selector("#data-content")
     ph.locator("input[type=file]").set_input_files([str(SUBSET), str(SUBSET_RANGES)])
-    ph.wait_for_function(f"document.querySelector('.source-label').innerText.includes('сотрудников: {subset['n']}')", timeout=5000)
+    ph.wait_for_function(f"document.querySelector('.source-label').innerText.replace(/\u00a0/g, ' ').includes('сотрудников: {subset['n']}')", timeout=5000)
     w = ph.evaluate("document.documentElement.scrollWidth")
     check("390 after file load: no horizontal scroll", w <= 390, f"scrollWidth {w}")
     ph.close()
