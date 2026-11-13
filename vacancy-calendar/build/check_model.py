@@ -76,10 +76,10 @@ for label, want in [
     ("согласование и публикация вакансии", R["steps"][1]), ("срок до выхода по грейду", R["steps"][2]),
     ("кандидат уже в воронке", R["steps"][3]), ("привязка к запуску проекта", R["steps"][4]),
     ("позиции, которые не закроются в бюджетном году", R["unfilled"]),
-    ("сдвиги позиций, которые могут подождать", R["moves"]),
-    ("Общий ФОТ, даты выхода по запросу", R["total_requested"]), ("Общий ФОТ, реалистичный прогноз", R["total_realistic"]),
-    ("Общий ФОТ, новые даты выхода после сдвигов", R["total_after"]),
-    ("в том числе прирост: переходящий эффект (аннуализация)",R["carry"] + R["new_next"]),
+    ("перенос выхода позиций, которые могут подождать", R["moves"]),
+    ("Общий ФОТ, заявлено бизнесом", R["total_requested"]), ("Общий ФОТ, реалистичный прогноз", R["total_realistic"]),
+    ("Общий ФОТ после переноса выхода", R["total_after"]),
+    ("в том числе переходящий эффект (аннуализация)", R["carry"] + R["new_next"]),
     ("в том числе уже в бюджете года, новые даты выхода", R["after_moves"]),
 ]:
     same(label, want, sm.cell(lab[label], 2).value)
@@ -108,11 +108,11 @@ step_cols = {}
 for c in range(1, wp.max_column + 1):
     h = wp.cell(4, c).value
     step_cols.setdefault(h, []).append(c)
-c_month = step_cols["Реалистично"][0]          # step 4: realistic cost month
-c_cost = step_cols["Реалистично"][1]           # step 5: realistic cost
-c_w = head["Доля закрытия"]
-c_shift = head["Сдвиг, мес."]
-c_cost5 = head["Стоимость в бюджетном году после сдвигов"]
+c_month = step_cols["Реалистичные даты выхода"][0]   # step 4: realistic cost month
+c_cost = step_cols["Реалистичные даты выхода"][1]    # step 5: realistic cost
+c_w = head["Закрываемость"]
+c_shift = head["Перенос выхода, мес."]
+c_cost5 = head["Стоимость в бюджетном году после переноса выхода"]
 c_ann = head["Полная годовая стоимость"]
 for i, row in enumerate(R["rows"]):
     r = 5 + i

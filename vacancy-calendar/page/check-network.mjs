@@ -26,7 +26,7 @@ try {
 
   for (const [kind, file, expect] of [
     ["positions", "sample-positions.csv", "sample-positions.csv · 240 открытых позиций"],
-    ["history", "sample-hiring-history.csv", "история найма: sample-hiring-history.csv"],
+    ["history", "sample-hiring-history.csv", "история найма из файла «sample-hiring-history.csv»"],
   ]) {
     const input = await p.$(`input[type=file][data-kind=${kind}]`);
     if (!input) { console.log(`${kind} file input MISSING`); failed = true; continue; }

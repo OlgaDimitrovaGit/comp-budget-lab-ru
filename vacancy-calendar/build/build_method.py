@@ -93,7 +93,7 @@ TEMPLATE = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
-<meta name="description" content="Как считает календарь вакансий: реальные даты выхода, страховые взносы с нарастающей базой, сдвиги в пределах лимита ФОТ, переходящий эффект на 2028 год.">
+<meta name="description" content="Как считает календарь вакансий: реальные даты выхода, страховые взносы с нарастающей базой, перенос выхода в пределах лимита ФОТ, переходящий эффект на 2028 год.">
 <style>
   :root {{
     color-scheme: light dark;

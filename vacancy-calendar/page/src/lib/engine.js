@@ -114,7 +114,7 @@ function records(text) {
 
 const num = (s, what) => {
   const v = Number(String(s).replace(/\s/g, "").replace(",", "."));
-  if (!Number.isFinite(v)) throw new Error(`${what}: «${s}» — не число`);
+  if (!Number.isFinite(v)) throw new Error(`${what}: «${s}» не является числом`);
   return v;
 };
 
@@ -128,9 +128,9 @@ export function loadPositions(text) {
     if (!r.get("position_id")) continue;
     const at = `Строка ${r.line}`;
     const grade = r.get("grade").toUpperCase();
-    if (!GRADES.includes(grade)) throw new Error(`${at}: грейда «${r.get("grade")}» нет в шкале G1–G25.`);
+    if (!GRADES.includes(grade)) throw new Error(`${at}: грейда «${r.get("grade")}» нет в шкале от G1 до G25.`);
     const rawStage = r.get("stage").toLowerCase().replace(/ё/g, "е");
-    if (rawStage && !(rawStage in STAGES)) throw new Error(`${at}: этап «${rawStage}» — укажите собеседование, оффер, принят или оставьте пустым.`);
+    if (rawStage && !(rawStage in STAGES)) throw new Error(`${at}: этап «${rawStage}» не распознан: укажите собеседование, оффер, принят или оставьте пустым.`);
     const stage = rawStage ? STAGES[rawStage] : "";
     const exp = r.get("expected_start");
     if (stage === "accepted" && !exp) throw new Error(`${at}: для этапа «принят» нужна дата выхода (expected_start).`);

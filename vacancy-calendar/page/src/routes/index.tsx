@@ -4,14 +4,14 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import demoPositions from "../../../sample-positions.csv?raw";
 import demoHistory from "../../../sample-hiring-history.csv?raw";
 import { DEFAULTS, analyse, loadHistory, loadPositions } from "@/lib/engine.js";
-import { MINUS, rubM, rubK, m2 } from "@/lib/format";
+import { MINUS, rubM, rubK, m0, mln } from "@/lib/format";
 
 const TITLE = "Календарь вакансий: сколько открытые позиции на самом деле стоят в 2027 году";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: TITLE },
-      { name: "description", content: "Сколько стоят открытые позиции при реалистичных датах выхода, чей выход сдвинуть, чтобы уложиться в лимит ФОТ 2027 года, и что переходит в 2028 год." },
+      { name: "description", content: "Сколько стоят открытые позиции при реалистичных датах выхода, чей выход перенести, чтобы уложиться в лимит ФОТ 2027 года, и что переходит в 2028 год." },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: "Открытые позиции при реалистичных датах выхода против лимита ФОТ 2027 года." },
       { property: "og:type", content: "website" },
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/")({
 type R = ReturnType<typeof analyse>;
 const csvHref = (text: string) => `data:text/csv;charset=utf-8,${encodeURIComponent(text)}`;
 const avgMonths = (r: R) => (r.moved_roles ? String(Math.round((r.moved_months / r.moved_roles) * 10) / 10).replace(".", ",") : "0");
-const cents = (v: number) => Math.round(v / 1e4); // compare on the shown 0,00 млн scale
+const cents = mln; // compare on the shown whole-million scale
 /** Russian plural: plural(5, ["позиция", "позиции", "позиций"]) -> "позиций". */
 const plural = (n: number, [one, few, many]: readonly [string, string, string]) => {
   const a = Math.abs(n) % 100, b = a % 10;
@@ -35,8 +35,8 @@ const plural = (n: number, [one, few, many]: readonly [string, string, string]) 
 };
 const ROLES = ["позиция", "позиции", "позиций"] as const;
 const OPEN_ROLES = ["открытая позиция", "открытые позиции", "открытых позиций"] as const;
-/** Millions without the unit, with a sign for changes: "+12,34" / "−12,34". */
-const sm2 = (v: number, sign: boolean) => `${v < 0 ? MINUS : sign && cents(v) !== 0 ? "+" : ""}${m2(Math.abs(v))}`;
+/** Whole millions without the unit, with a sign for changes: "+12" / "−12". */
+const sm0 = (v: number, sign: boolean) => `${cents(v) < 0 ? MINUS : sign && cents(v) !== 0 ? "+" : ""}${m0(Math.abs(v))}`;
 
 /* ---------- tooltip ---------- */
 type Tip = { x: number; y: number; content: ReactNode } | null;
@@ -114,20 +114,20 @@ function Waterfall({ r }: { r: R }) {
   const req = r.requested, timed = r.timed, filled = r.realistic;
   const real = filled - r.leavers, after = r.after_moves - r.leavers;
   const timing = b.approval + b.time_to_start + b.pipeline + b.project;
-  const parts = ([["согласование вакансии", b.approval], ["срок до выхода", b.time_to_start], ["кандидаты уже в воронке", b.pipeline]] as const)
+  const parts = ([["согласование вакансии", b.approval], ["срок от публикации до выхода", b.time_to_start], ["кандидаты уже в воронке", b.pipeline]] as const)
     .filter(([, v]) => Math.round(v / 1000) !== 0);
   const change = (label: string, from: number, to: number, tip: ReactNode) =>
     cents(to - from) !== 0 ? [{ label, lo: Math.min(from, to), hi: Math.max(from, to), v: to - from, total: false, tip }] : [];
   const hasMoves = cents(r.moves) !== 0;
   const bars = [
-    { label: "По заявкам", lo: 0, hi: req, v: req, total: true, tip: <><b>По заявкам руководителей</b><br />Все открытые позиции с запрошенного месяца: {rubM(req)}</> },
-    ...change("Сроки найма", req, timed, <><b>Сроки найма {rubM(timing, { sign: true })}</b>{parts.map(([l, v]) => <span key={l}><br />{l} {rubK(v)}</span>)}</>),
-    ...change("Не закрыты", timed, filled, <><b>Незакрытые позиции {rubM(r.unfilled, { sign: true })}</b><br />Из позиций без кандидата в 2027 году закрывается {r.fill_rate}%, остальные в этом году ничего не стоят</>),
-    ...change("Места ушедших", filled, real, <><b>Пустые места ушедших {rubM(-r.leavers, { sign: true })}</b><br />Уходит {r.attrition}% текущего состава, место пустует {r.vacant_months} мес.</>),
-    { label: "Прогноз", lo: 0, hi: real, v: real, total: true, tip: <><b>Реалистичный прогноз</b><br />{rubM(real)}: новые сотрудники с реалистичных дат выхода минус пустые места ушедших</> },
+    { label: "Заявлено бизнесом", lo: 0, hi: req, v: req, total: true, tip: <><b>Заявлено бизнесом</b><br />Все открытые позиции с месяца из заявки: {rubM(req)}</> },
+    ...change("Сроки найма", req, timed, <><b>Сроки найма {rubM(timing, { sign: true })}</b>{parts.map(([l, v]) => <span key={l}><br />{l}: {rubK(v)}</span>)}</>),
+    ...change("Незакрытые вакансии", timed, filled, <><b>Незакрытые вакансии {rubM(r.unfilled, { sign: true })}</b><br />Из вакансий без кандидата в 2027 году закрывается {r.fill_rate}%, остальные в этом году ничего не стоят</>),
+    ...change("Текучесть", filled, real, <><b>Текучесть {rubM(-r.leavers, { sign: true })}</b><br />Текучесть {r.attrition}% в год, все увольнения, место ушедшего пустует {r.vacant_months} мес.</>),
+    { label: "Прогноз", lo: 0, hi: real, v: real, total: true, tip: <><b>Реалистичный прогноз</b><br />{rubM(real)}: новые сотрудники с реалистичных дат выхода минус экономия на текучести</> },
     ...(hasMoves ? [
-      { label: "Сдвиги", lo: after, hi: real, v: r.moves, total: false, tip: <><b>Сдвиги {rubM(r.moves, { sign: true })}</b><br />Сдвинуто {r.moved_roles} {plural(r.moved_roles, ROLES)}, в среднем на {avgMonths(r)} мес.</> },
-      { label: "После сдвигов", lo: 0, hi: after, v: after, total: true, tip: <><b>После сдвигов</b><br />{rubM(after)} · бюджет найма в пределах лимита {rubM(r.hiring_budget)}</> },
+      { label: "Перенос выхода", lo: after, hi: real, v: r.moves, total: false, tip: <><b>Перенос выхода {rubM(r.moves, { sign: true })}</b><br />Выход перенесён по {r.moved_roles} {plural(r.moved_roles, ["позиции", "позициям", "позициям"])}, в среднем на {avgMonths(r)} мес.</> },
+      { label: "После переноса", lo: 0, hi: after, v: after, total: true, tip: <><b>После переноса выхода</b><br />{rubM(after)}: ФОТ по вакансиям в пределах лимита {rubM(r.hiring_budget)}</> },
     ] : []),
   ];
   const top = Math.max(...bars.map((x) => x.hi), 1);
@@ -154,7 +154,7 @@ function Waterfall({ r }: { r: R }) {
                 style={{ bottom: pct(x.lo), height: pct(x.hi - x.lo) }}
               >
                 <span className={`num absolute -inset-x-2 -top-5 whitespace-nowrap text-center text-[9px] font-semibold sm:text-xs ${x.total ? "text-foreground" : "text-muted-foreground"}`}>
-                  {sm2(x.v, !x.total)}
+                  {sm0(x.v, !x.total)}
                 </span>
               </div>
               <div className="absolute inset-0 rounded-sm transition-colors group-hover:bg-foreground/5" />
@@ -199,20 +199,20 @@ function YearCards({ r }: { r: R }) {
   return (
     <div className="grid gap-5 @2xl:grid-cols-2">
       <Card
-        title="Бюджет найма 2027 года за вычетом ушедших"
+        title="ФОТ по вакансиям 2027 года с учётом текучести"
         big={noMoves ? rubM(real) : <><span className="text-muted-foreground">{rubM(real)}</span> → {rubM(after)}</>}
         line={noMoves
-          ? <span className="font-medium text-good">Сдвиги не нужны: до лимита ещё {rubM(-r.gap)}</span>
-          : <><span className={`font-medium ${cantClose ? "text-destructive" : "text-good"}`}>Сдвиги экономят {rubM(saved)}</span><span className="text-muted-foreground"> · {r.moved_roles} {plural(r.moved_roles, ROLES)}, в среднем на {avgMonths(r)} мес.</span></>}
+          ? <span className="font-medium text-good">Переносить выход не нужно: до лимита ещё {rubM(-r.gap)}</span>
+          : <><span className={`font-medium ${cantClose ? "text-destructive" : "text-good"}`}>Перенос выхода экономит {rubM(saved)}</span><span className="text-muted-foreground"> · {r.moved_roles} {plural(r.moved_roles, ROLES)}, в среднем на {avgMonths(r)} мес.</span></>}
         bar={<div className="h-2 overflow-hidden rounded-full bg-muted"><div className={`h-full rounded-full transition-all duration-700 ${cantClose ? "bg-destructive" : "bg-reduction"}`} style={{ width: `${used}%` }} /></div>}
-        caption={noMoves ? <>Сдвиги могли бы сэкономить до {rubM(r.capacity)}</> : <>Использовано {rubM(saved)} из {rubM(r.capacity)} возможной экономии ({used}%)</>}
+        caption={noMoves ? <>Перенос выхода мог бы сэкономить до {rubM(r.capacity)}</> : <>Использовано {rubM(saved)} из {rubM(r.capacity)} возможной экономии ({used}%)</>}
       />
       <Card
-        title="Найм 2027 года в ФОТ 2028 года"
+        title="Влияние на ФОТ 2028 года"
         big={rubM(ny.total)}
         line={<span className="text-muted-foreground">Полная годовая стоимость найма 2027 года{r.late_roles ? `, плюс ${r.late_roles} ${plural(r.late_roles, ROLES)} с выходом в 2028 году` : ""}</span>}
         bar={<div className="flex h-2 overflow-hidden rounded-full"><div className="bg-total" style={{ width: `${ny.total > 0 ? (ny.base / ny.total) * 100 : 0}%` }} /><div className="flex-1 bg-reduction" /></div>}
-        caption={<span className="flex flex-wrap gap-x-3"><span className="flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-total" />{rubM(ny.base)} — стоимость новых сотрудников в 2027 году</span><span className="flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-reduction" />{rubM(ny.carry)} — {r.late_roles ? "переходящий эффект и выходы в 2028 году" : "переходящий эффект (аннуализация)"}</span></span>}
+        caption={<span className="flex flex-wrap gap-x-3"><span className="flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-total" />{rubM(ny.base)}: стоимость новых сотрудников в 2027 году</span><span className="flex items-center gap-1.5"><i className="size-2.5 rounded-sm bg-reduction" />{rubM(ny.carry)}: {r.late_roles ? "переходящий эффект и выходы в 2028 году" : "переходящий эффект (аннуализация)"}</span></span>}
       />
     </div>
   );
@@ -232,8 +232,8 @@ function Departments({ r }: { r: R }) {
   // Leavers' empty seats lower payroll but belong to no open role: one row, so the total matches the chart above.
   const lv = cents(r.leavers) > 0 ? r.leavers : 0;
   if (lv) { tot.realistic -= lv; tot.after_moves -= lv; tot.savings += lv; }
-  const lvLabel = "Пустые места ушедших, все подразделения";
-  const lvNote = `Уходит ${r.attrition}% текущего состава, место пустует ${r.vacant_months} мес.`;
+  const lvLabel = "Текучесть, все подразделения";
+  const lvNote = `Текучесть ${r.attrition}% в год, все увольнения, место ушедшего пустует ${r.vacant_months} мес.`;
   const shown = all ? depts : depts.slice(0, 12);
   const withTotal = depts.length > 1;
   const maxSav = Math.max(...depts.map((d) => d.savings), 1);
@@ -246,9 +246,9 @@ function Departments({ r }: { r: R }) {
           <thead className="text-xs text-muted-foreground">
             <tr className="border-b border-border">
               <th className="px-3 py-2 text-left font-medium">Подразделение</th>
-              <th className={th}>Позиций</th><th className={th}>Сдвинуто</th><th className={th}>По заявкам</th>
-              <th className={th}>Реалистично</th><th className={th}>После сдвигов</th>
-              <th className={th}>Снижение к заявкам</th><th className={th}>Полный год</th>
+              <th className={th}>Позиций, шт.</th><th className={th}>Выход перенесён, шт.</th><th className={th}>Заявлено бизнесом</th>
+              <th className={th}>Реалистичный прогноз</th><th className={th}>После переноса выхода</th>
+              <th className={th}>Экономия к заявленному</th><th className={th}>ФОТ в годовом выражении</th>
             </tr>
           </thead>
           <tbody>
@@ -256,38 +256,38 @@ function Departments({ r }: { r: R }) {
               <tr
                 key={d.department}
                 className="border-b border-border transition-colors hover:bg-row-hover"
-                {...bind(<><b>{d.department}</b><br />сдвинуто {d.moved} из {d.roles} {plural(d.roles, ROLES)}<br />сроки и незакрытые позиции {rubM(d.realistic - d.requested, { sign: true })} · сдвиги {rubM(d.after_moves - d.realistic, { sign: true })}{tot.savings > 0 && <><br />{((d.savings / tot.savings) * 100).toFixed(0)}% всего снижения</>}</>)}
+                {...bind(<><b>{d.department}</b><br />выход перенесён по {d.moved} из {d.roles} {plural(d.roles, ROLES)}<br />сроки найма и незакрытые вакансии {rubM(d.realistic - d.requested, { sign: true })} · перенос выхода {rubM(d.after_moves - d.realistic, { sign: true })}{tot.savings > 0 && <><br />{((d.savings / tot.savings) * 100).toFixed(0)}% всей экономии</>}</>)}
               >
                 <td className="px-3 py-2 text-left">{d.department}</td>
                 <td className={td}>{d.roles}</td>
                 <td className={td}>{d.moved}</td>
-                <td className={td}>{m2(d.requested)}</td>
-                <td className={td}>{m2(d.realistic)}</td>
-                <td className={td}>{m2(d.after_moves)}</td>
+                <td className={td}>{m0(d.requested)}</td>
+                <td className={td}>{m0(d.realistic)}</td>
+                <td className={td}>{m0(d.after_moves)}</td>
                 <td className={td}>
                   <div className="flex items-center justify-end gap-2">
                     <span className="h-1.5 rounded-full bg-reduction" style={{ width: `${Math.max(0, d.savings / maxSav) * 56}px` }} />
-                    <span className="font-medium">{m2(d.savings)}</span>
+                    <span className="font-medium">{m0(d.savings)}</span>
                   </div>
                 </td>
-                <td className={td}>{m2(d.full_year)}</td>
+                <td className={td}>{m0(d.full_year)}</td>
               </tr>
             ))}
             {lv > 0 && (
-              <tr className="border-b border-border text-muted-foreground transition-colors hover:bg-row-hover" {...bind(<><b>Пустые места ушедших</b><br />{lvNote} Не привязаны к открытым позициям</>)}>
+              <tr className="border-b border-border text-muted-foreground transition-colors hover:bg-row-hover" {...bind(<><b>Текучесть</b><br />{lvNote}. Не привязан к открытым позициям</>)}>
                 <td className="px-3 py-2 text-left">{lvLabel}</td>
-                <td className={td}>—</td><td className={td}>—</td><td className={td}>—</td>
-                <td className={td}>{MINUS}{m2(lv)}</td><td className={td}>{MINUS}{m2(lv)}</td>
-                <td className={td}>{m2(lv)}</td><td className={td}>—</td>
+                <td className={td} /><td className={td} /><td className={td} />
+                <td className={td}>{MINUS}{m0(lv)}</td><td className={td}>{MINUS}{m0(lv)}</td>
+                <td className={td}>{m0(lv)}</td><td className={td} />
               </tr>
             )}
             {withTotal && (
               <tr className="bg-muted font-semibold">
                 <td className="px-3 py-2 text-left">Итого</td>
                 <td className={td}>{tot.roles}</td><td className={td}>{tot.moved}</td>
-                <td className={td}>{m2(tot.requested)}</td><td className={td}>{m2(tot.realistic)}</td>
-                <td className={td}>{m2(tot.after_moves)}</td><td className={td}>{m2(tot.savings)}</td>
-                <td className={td}>{m2(tot.full_year)}</td>
+                <td className={td}>{m0(tot.requested)}</td><td className={td}>{m0(tot.realistic)}</td>
+                <td className={td}>{m0(tot.after_moves)}</td><td className={td}>{m0(tot.savings)}</td>
+                <td className={td}>{m0(tot.full_year)}</td>
               </tr>
             )}
           </tbody>
@@ -298,7 +298,7 @@ function Departments({ r }: { r: R }) {
           <div className="order-1 rounded-md border border-border p-3 text-muted-foreground">
             <div className="flex items-baseline justify-between gap-2">
               <span className="font-medium">{lvLabel}</span>
-              <span className="text-xl font-semibold"><span className="mr-1.5 text-xs font-normal">Снижение к заявкам</span>{m2(lv)}</span>
+              <span className="text-xl font-semibold"><span className="mr-1.5 text-xs font-normal">Экономия к заявленному</span>{m0(lv)}</span>
             </div>
             <div className="mt-1 text-xs leading-relaxed">{lvNote}</div>
           </div>
@@ -307,11 +307,11 @@ function Departments({ r }: { r: R }) {
           <div key={d.department} className={`rounded-md border border-border p-3 ${d.isTotal ? "order-2 bg-muted" : ""}`}>
             <div className="flex items-baseline justify-between gap-2">
               <span className={d.isTotal ? "font-semibold" : "font-medium"}>{d.department}</span>
-              <span className="text-xl font-semibold"><span className="mr-1.5 text-xs font-normal text-muted-foreground">Снижение к заявкам</span>{m2(d.savings)}</span>
+              <span className="text-xl font-semibold"><span className="mr-1.5 text-xs font-normal text-muted-foreground">Экономия к заявленному</span>{m0(d.savings)}</span>
             </div>
             <div className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              <div>{d.roles} {plural(d.roles, ROLES)} · сдвинуто {d.moved}</div>
-              <div>По заявкам {m2(d.requested)} · реалистично {m2(d.realistic)} · после сдвигов {m2(d.after_moves)} · полный год {m2(d.full_year)}</div>
+              <div>{d.roles} {plural(d.roles, ROLES)} · выход перенесён по {d.moved}</div>
+              <div>Заявлено бизнесом {m0(d.requested)} · реалистичный прогноз {m0(d.realistic)} · после переноса выхода {m0(d.after_moves)} · в годовом выражении {m0(d.full_year)}</div>
             </div>
           </div>
         ))}
@@ -364,51 +364,51 @@ function MoneyInput({ f }: { f: NumField }) {
 }
 type Inputs = { target: NumField; current: NumField; shift: NumField; interview: NumField; offer: NumField; attrition: NumField; vacant: NumField; fill: NumField };
 const RATE_FIELDS = [
-  ["Уходит сотрудников", "attrition", "%", "От 0 до 100"],
-  ["Место пустует", "vacant", "мес.", "От 0 до 12"],
-  ["Закрывается позиций", "fill", "%", "От 1 до 100"],
+  ["Текучесть за год, все увольнения", "attrition", "%", "От 0 до 100"],
+  ["Срок замещения ушедшего", "vacant", "мес.", "От 0 до 12"],
+  ["Закрываемость вакансий", "fill", "%", "От 1 до 100"],
 ] as const;
+/** One short field: label on the left, input and unit on the right, with a clear gap between them. */
+function SmallField({ label, f, unit, mode, badHint }: { label: string; f: NumField; unit: string; mode: "numeric" | "decimal"; badHint: string }) {
+  return (
+    <div>
+      <label className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 text-sm">
+        <span className="leading-snug">{label}</span>
+        <span className="flex items-center gap-1.5"><input className="field w-16 text-right" value={f.text} onChange={(e) => f.set(e.target.value)} inputMode={mode} /><span className="w-8 text-left text-muted-foreground">{unit}</span></span>
+      </label>
+      {f.bad && <span className="mt-1 block text-xs text-destructive">{badHint}</span>}
+    </div>
+  );
+}
 function Scenario({ f, planDate, r }: { f: Inputs; planDate: string; r: R }) {
   const inStage = (s: string) => r.rows.filter((x) => x.stage === s).length;
-  const keep = (v: number | null, money = false) => `Не число. Пока считаем по ${v == null ? "—" : money ? `${fmtNum(v)} млн ₽` : fmtNum(v)}`;
+  const keep = (v: number | null, money = false) => `Не число. Пока считаем по ${v == null ? "пустому значению" : money ? `${fmtNum(v)} млн ₽` : fmtNum(v)}`;
   const shown = new Date(`${planDate}T00:00:00Z`).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
   const nI = inStage("interview"), nO = inStage("offer");
   return (
     <div className="space-y-4">
       <Field label="Лимит ФОТ 2027 года" hint="со страховыми взносами" bad={f.target.bad} badHint={keep(f.target.value, true)}><MoneyInput f={f.target} /></Field>
       <Field label="ФОТ текущего состава" hint="текущая численность, полный 2027 год" bad={f.current.bad} badHint={keep(f.current.value, true)}><MoneyInput f={f.current} /></Field>
-      <Field label="Сдвиг даты выхода, не больше, мес." hint="на одну позицию; критичные, проектные позиции и кандидатов в воронке не сдвигаем">
+      <Field label="Перенос выхода, не больше, мес." hint="на одну позицию; выход критичных и проектных позиций и кандидатов в воронке не переносим">
         <select className="field" value={f.shift.text} onChange={(e) => f.shift.set(e.target.value)}>{[0, 1, 2, 3, 4, 5, 6].map((n) => <option key={n}>{n}</option>)}</select>
       </Field>
       <div className="border-t border-border pt-4">
         <div className="text-sm font-semibold">Кандидаты уже в воронке</div>
         <div className="mt-3 space-y-3">
-          {([["Собеседования: выход через", "interview"], ["Оффер отправлен: выход через", "offer"]] as const).map(([l, k]) => (
-            <div key={k}>
-              <label className="flex items-center justify-between gap-2 text-sm">
-                <span className="min-w-0">{l}</span>
-                <span className="flex shrink-0 items-center gap-1.5"><input className="field w-16 text-right" value={f[k].text} onChange={(e) => f[k].set(e.target.value)} inputMode="numeric" /><span className="w-10 text-left">дн.</span></span>
-              </label>
-              {f[k].bad && <span className="mt-1 block text-xs text-destructive">Целое число дней от 0 до 365. Пока считаем по {f[k].value}</span>}
-            </div>
+          {([["На собеседовании: выход через", "interview"], ["Оффер отправлен: выход через", "offer"]] as const).map(([l, k]) => (
+            <SmallField key={k} label={l} f={f[k]} unit="дн." mode="numeric" badHint={`Целое число дней от 0 до 365. Пока считаем по ${f[k].value}`} />
           ))}
         </div>
-        <span className="mt-2 block text-xs text-muted-foreground">от даты плана, {shown}. На собеседованиях {nI} {plural(nI, ROLES)}, с отправленным оффером — {nO}. Стоимость считается целыми месяцами: выход после 15-го числа — со следующего месяца.</span>
+        <span className="mt-2 block text-xs text-muted-foreground">Считаем от даты плана: {shown.replace(/\.$/, "")}. Сейчас на этапе собеседований {nI} {plural(nI, ROLES)}, оффер отправлен по {nO}. Для простоты затраты считаем целыми месяцами: при выходе после 15-го числа месяц выхода не учитываем, затраты начинаются со следующего месяца.</span>
       </div>
       <div className="border-t border-border pt-4">
-        <div className="text-sm font-semibold">Уходы и закрытие позиций в 2027 году</div>
+        <div className="text-sm font-semibold">Текучесть и закрытие вакансий в 2027 году</div>
         <div className="mt-3 space-y-3">
           {RATE_FIELDS.map(([l, k, unit, range]) => (
-            <div key={k}>
-              <label className="flex items-center justify-between gap-2 text-sm">
-                <span className="min-w-0">{l}</span>
-                <span className="flex shrink-0 items-center gap-1.5"><input className="field w-16 text-right" value={f[k].text} onChange={(e) => f[k].set(e.target.value)} inputMode="decimal" /><span className="w-10 text-left">{unit}</span></span>
-              </label>
-              {f[k].bad && <span className="mt-1 block text-xs text-destructive">{range}. Пока считаем по {fmtNum(f[k].value ?? 0)}</span>}
-            </div>
+            <SmallField key={k} label={l} f={f[k]} unit={unit} mode="decimal" badHint={`${range}. Пока считаем по ${fmtNum(f[k].value ?? 0)}`} />
           ))}
         </div>
-        <span className="mt-2 block text-xs text-muted-foreground">закрывается позиций: доля позиций без кандидата, на которые человек выйдет в 2027 году. Значения по умолчанию условные — подставьте свою историю</span>
+        <span className="mt-2 block text-xs text-muted-foreground">Закрываемость: доля вакансий без кандидата в воронке, на которые новый сотрудник выйдет до конца 2027 года. Значения по умолчанию условные, подставьте свои.</span>
       </div>
     </div>
   );
@@ -432,7 +432,7 @@ const readFile = (file: File) => new Promise<string>((ok, no) => { const fr = ne
 
 const POSITION_HELP: [string, string][] = [
   ["position_id", "любой уникальный код"],
-  ["department", "подразделение — так, как хотите группировать"],
+  ["department", "подразделение, по которому группировать итоги"],
   ["grade", "от G1 до G25"],
   ["base_salary", "оклад за год, в рублях"],
   ["target_bonus_pct", "необязательно, целевая премия в %, например 15"],
@@ -440,8 +440,8 @@ const POSITION_HELP: [string, string][] = [
   ["stage", "необязательно: собеседование, оффер или принят"],
   ["expected_start", "дата выхода для принятых офферов, ГГГГ-ММ-ДД"],
   ["project_start", "необязательно, ГГГГ-ММ-ДД: раньше позиция не нужна"],
-  ["critical", "необязательно, да или нет: критичные позиции не сдвигаются"],
-  ["fte", "необязательно, доля ставки: 0,5 — полставки, 10 — десять одинаковых позиций одной строкой; пусто — 1"],
+  ["critical", "необязательно, да или нет: выход критичных позиций не переносится"],
+  ["fte", "необязательно, число ставок: 0.5 означает полставки, 10 означает десять одинаковых позиций одной строкой; пусто считается как 1"],
 ];
 const HISTORY_HELP: [string, string][] = [
   ["grade", "от G1 до G25"],
@@ -511,11 +511,12 @@ function Dashboard() {
   const noMoves = cents(r.gap) <= 0;
   const cantClose = !noMoves && cents(r.gap_after) > 0;
   const used = r.capacity > 0 ? Math.min(100, Math.round((-r.moves / r.capacity) * 100)) : 0;
+  const over = (v: number) => <b className="font-semibold text-destructive">{rubM(v, { sign: true })}</b>;
   const verdict = noMoves
-    ? `Укладываемся в лимит без сдвигов: запас ${rubM(-r.gap)}.`
+    ? <>Реалистичный прогноз укладывается в лимит без переноса выхода: запас <b className="font-semibold text-good">{rubM(-r.gap)}</b>.</>
     : cantClose
-      ? `Даже после всех возможных сдвигов лимит превышен на ${rubM(r.gap_after)}: нужно договориться, какие позиции снять.`
-      : `Реалистичный прогноз выше лимита на ${rubM(r.gap)}. Уложимся, если ${r.moved_roles} из ${r.eligible_roles} ${plural(r.eligible_roles, ROLES)}, которые могут подождать, выйдут в среднем на ${avgMonths(r)} мес. позже: это экономит ${rubM(-r.moves)}, ${used}% того, что могут дать сдвиги.`;
+      ? <>Даже после всех возможных переносов выхода прогноз {over(r.gap_after)} сверх лимита: нужно решить, какие позиции снять.</>
+      : <>Реалистичный прогноз: {over(r.gap)} сверх лимита. Уложиться можно, если перенести выход по {r.moved_roles} из {r.eligible_roles} {plural(r.eligible_roles, ["позиции", "позиций", "позиций"])} без жёсткого срока в среднем на {avgMonths(r)} мес. (экономия {rubM(-r.moves)}, {used}% всей возможной экономии от переноса выхода).</>;
   const source = `${pos.name ?? "Смоделированные данные"} · ${r.roles} ${plural(r.roles, OPEN_ROLES)}`;
   const notes = [
     !hist.rows.length && "Истории найма нет: сроки по грейдам взяты по умолчанию.",
@@ -534,17 +535,18 @@ function Dashboard() {
           <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
             <span className="block">В заявках «всех с января»,<br className="sm:hidden" /> а люди выходят позже.</span>
             <span className="block">Сколько открытые позиции будут стоить при реалистичных датах выхода?</span>
-            <span className="block">Чей выход сдвинуть, чтобы уложиться в лимит ФОТ?</span>
+            <span className="block">Чей выход перенести, чтобы уложиться в лимит ФОТ?</span>
             <span className="block">Что перейдёт в 2028 год?</span>
           </p>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <span className="flex items-center gap-2 text-muted-foreground"><i className={`size-2 rounded-full ${pos.name ? "bg-good" : "bg-muted-foreground"}`} />{source}</span>
             <button className="btn" onClick={openData}>↑ Загрузить свои данные</button>
+            <a className="link" href="method.html">Как считаем: метод по шагам</a>
           </div>
         </div>
       </header>
 
-      <div className="grid gap-5 md:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="grid gap-5 md:grid-cols-[272px_minmax(0,1fr)]">
         <aside className="hidden md:block">
           <div className="panel sticky top-6 p-4">
             <h2 className="mb-4 text-base font-semibold sm:text-lg">Ваши вводные</h2>
@@ -554,11 +556,11 @@ function Dashboard() {
 
         <main className="@container min-w-0 space-y-5">
           <Section title="ФОТ 2027 года против лимита">
-            <p className={`mb-4 text-base font-semibold leading-relaxed sm:text-lg ${cantClose ? "text-destructive" : ""}`}>{verdict}</p>
+            <p className="mb-4 text-sm leading-relaxed sm:text-base">{verdict}</p>
             <div className="grid grid-cols-2 gap-3 @xl:grid-cols-3">
-              <Kpi label="По заявкам руководителей" value={r.total_requested} target={r.target} />
-              <Kpi label="Реалистичный прогноз" value={r.total_realistic} target={r.target} note="сроки найма, уходы, незакрытые позиции" />
-              <Kpi label="После сдвигов" value={r.total_after} target={r.target} note={noMoves ? "Сдвиги не нужны" : undefined} />
+              <Kpi label="Заявлено бизнесом" value={r.total_requested} target={r.target} />
+              <Kpi label="Реалистичный прогноз" value={r.total_realistic} target={r.target} note="сроки найма, текучесть, незакрытые вакансии" />
+              <Kpi label="После переноса выхода" value={r.total_after} target={r.target} note={noMoves ? "Переносить выход не нужно" : undefined} />
             </div>
           </Section>
 
@@ -566,7 +568,7 @@ function Dashboard() {
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4">
               <span className="min-w-0">
                 <span className="block text-base font-semibold">Ваши вводные</span>
-                <span className="block text-xs text-muted-foreground">Лимит ФОТ, текущий ФОТ, сдвиги, воронка, уходы, закрытие позиций</span>
+                <span className="block text-xs text-muted-foreground">Лимит ФОТ, текущий ФОТ, перенос выхода, воронка, текучесть, закрываемость</span>
               </span>
               <span className="btn shrink-0 group-open:hidden">Изменить ▾</span>
               <span className="btn hidden shrink-0 group-open:inline-flex">Скрыть ▴</span>
@@ -574,36 +576,37 @@ function Dashboard() {
             <div className="border-t border-border p-4"><Scenario f={f} planDate={planDate} r={r} /></div>
           </details>
 
-          <Section title="Бюджет найма 2027 года, млн ₽: от заявок к лимиту"><Waterfall r={r} /></Section>
+          <Section title="ФОТ по вакансиям 2027 года, млн ₽: от заявок к лимиту"><Waterfall r={r} /></Section>
 
           <YearCards r={r} />
 
           <Section title="Влияние на ФОТ по подразделениям, млн ₽">
             <Departments r={r} />
-            <p className="mt-3 text-xs text-muted-foreground">Сдвиги по каждой позиции: <a className="link" href="vacancy-calendar-model.xlsx" download>Excel-модель, лист «План»</a></p>
+            <p className="mt-3 text-xs text-muted-foreground">Перенос выхода по каждой позиции: <a className="link" href="vacancy-calendar-model.xlsx" download>Excel-модель, лист «План»</a></p>
           </Section>
         </main>
       </div>
 
       <details ref={dataRef} open={dataOpen} onToggle={(e) => setDataOpen(e.currentTarget.open)} className="panel group mt-5 scroll-mt-4">
         <summary className="flex cursor-pointer list-none items-center justify-between p-4 text-sm font-semibold sm:p-5">
-          Ваши данные, Excel-модель и метод <span className="text-muted-foreground transition-transform group-open:rotate-180">▾</span>
+          Ваши данные и Excel-модель <span className="text-muted-foreground transition-transform group-open:rotate-180">▾</span>
         </summary>
         <div className="space-y-5 border-t border-border p-4 text-sm leading-relaxed sm:p-5">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <label className="btn">
-                Загрузить CSV открытых позиций
+                Загрузить Ваш список открытых позиций, csv
                 <input type="file" accept=".csv,text/csv" className="sr-only" onChange={load("positions")} data-kind="positions" />
               </label>
               <label className="btn">
-                Загрузить CSV истории найма
+                Загрузить Вашу историю найма, csv
                 <input type="file" accept=".csv,text/csv" className="sr-only" onChange={load("history")} data-kind="history" />
               </label>
               {(pos.name || hist.name) && <button className="btn" onClick={useDemo}>Вернуть демо-данные</button>}
             </div>
             <div className="text-muted-foreground">
-              Открытые позиции: {pos.name ?? "демо-файл"} · история найма: {hist.name ?? (hist.rows.length ? "демо-файл" : "нет")}. Файлы остаются в браузере и никуда не отправляются.
+              Сейчас в расчёте: открытые позиции {pos.name ? <>из файла «{pos.name}»</> : "из демо-файла"}, история найма {hist.name ? <>из файла «{hist.name}»</> : hist.rows.length ? "из демо-файла" : "не загружена (сроки по умолчанию)"}.
+              Загруженные файлы обрабатываются только в Вашем браузере и никуда не отправляются.
             </div>
             {error && <div role="alert" className="font-medium text-destructive">{error}</div>}
             {notes.map((n) => <div key={n} className="text-muted-foreground">{n}</div>)}
@@ -623,40 +626,38 @@ function Dashboard() {
                   </div>
                 ))}
               </div>
-              <p className="px-3 pb-3 text-xs text-muted-foreground">Названия столбцов — латиницей, как в образце. Разделитель — запятая, дробная часть — через точку.</p>
+              <p className="px-3 pb-3 text-xs text-muted-foreground">Названия столбцов латиницей, как в образце. Столбцы разделяются запятой, дробная часть пишется через точку.</p>
             </details>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-[max-content_minmax(0,1fr)] sm:items-start sm:gap-x-6">
-            <b className="sm:pt-2">Страховые взносы:</b>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="flex items-center gap-2 whitespace-nowrap">
-                  <input className="field w-16 text-right" inputMode="decimal" value={rateBelow.text} onChange={(e) => rateBelow.set(e.target.value)} aria-label="Ставка до предельной базы, %" />
-                  <span>% до базы</span>
-                </span>
-                <span className="flex items-center gap-2 whitespace-nowrap">
-                  <input className="field w-28 text-right" inputMode="decimal" value={ceiling.text} onChange={(e) => ceiling.set(e.target.value)} aria-label="Предельная база в год, ₽" />
-                  <span>₽ в год,</span>
-                </span>
-                <span className="flex items-center gap-2 whitespace-nowrap">
-                  <input className="field w-16 text-right" inputMode="decimal" value={rateAbove.text} onChange={(e) => rateAbove.set(e.target.value)} aria-label="Ставка сверх предельной базы, %" />
-                  <span>% сверх базы</span>
-                </span>
+          <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+            <fieldset>
+              <legend className="mb-2 font-semibold">Страховые взносы</legend>
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2">
+                <label htmlFor="rate-below">Ставка до предельной базы, %</label>
+                <input id="rate-below" className="field w-28 text-right" inputMode="decimal" value={rateBelow.text} onChange={(e) => rateBelow.set(e.target.value)} />
+                <label htmlFor="ceiling">Предельная база, ₽ в год</label>
+                <input id="ceiling" className="field w-28 text-right" inputMode="decimal" value={ceiling.text} onChange={(e) => ceiling.set(e.target.value)} />
+                <label htmlFor="rate-above">Ставка сверх базы, %</label>
+                <input id="rate-above" className="field w-28 text-right" inputMode="decimal" value={rateAbove.text} onChange={(e) => rateAbove.set(e.target.value)} />
               </div>
               {rateBelow.bad || rateAbove.bad || ceiling.bad
-                ? <span className="mt-1 block text-xs text-destructive">Ставки — от 0 до 100, база — положительное число или пусто. Пока считаем по {fmtNum(rateBelow.value ?? 0)}% до базы {ceiling.value == null ? "без предельной базы" : `${fmtNum(ceiling.value)} ₽`} и {fmtNum(rateAbove.value ?? 0)}% сверх неё</span>
-                : <span className="mt-1 block text-xs text-muted-foreground">По умолчанию — единый тариф 2026 года: 30% до предельной базы 2 979 000 ₽ и 15,1% сверх неё (п. 3 ст. 425 НК РФ; база — постановление Правительства РФ от 31.10.2025 № 1705). Для 2027 года взяты ставки и база 2026-го. Взносы на травматизм не включены. База копится с месяца выхода, нарастающим итогом: кто выходит поздно, может не дойти до неё. Доля ставки умножает оплату и взносы линейно. Пустая база — первая ставка на всю оплату.</span>}
-            </div>
-            <b className="sm:pt-2">Дата плана:</b>
+                ? <span className="mt-2 block text-xs text-destructive">Ставки от 0 до 100, база: положительное число или пусто. Пока считаем по {fmtNum(rateBelow.value ?? 0)}% до базы {ceiling.value == null ? "без предельной базы" : `${fmtNum(ceiling.value)} ₽`} и {fmtNum(rateAbove.value ?? 0)}% сверх неё</span>
+                : <span className="mt-2 block text-xs text-muted-foreground">РФ, тариф 2026 года (п. 3 ст. 425 НК РФ), без взносов на травматизм</span>}
+            </fieldset>
             <div>
-              <input type="date" className="field sm:max-w-48" value={planDate} onChange={(e) => e.target.value && setPlanDate(e.target.value)} />
-              <span className="mt-1 block text-xs text-muted-foreground">От этой даты отсчитывается выход кандидатов из воронки</span>
+              <label htmlFor="plan-date" className="mb-2 block font-semibold">Дата плана</label>
+              <input id="plan-date" type="date" className="field sm:max-w-48" value={planDate} onChange={(e) => e.target.value && setPlanDate(e.target.value)} />
+              <span className="mt-2 block text-xs text-muted-foreground">От этой даты отсчитывается выход кандидатов из воронки</span>
             </div>
           </div>
 
           <details className="rounded-md border border-border">
-            <summary className="cursor-pointer px-3 py-2 font-medium">Сроки найма по грейдам, G1–G25</summary>
+            <summary className="cursor-pointer px-3 py-2 font-medium">Сроки найма по грейдам, от G1 до G25</summary>
+            <p className="px-3 pb-2 text-xs text-muted-foreground">
+              По этим срокам считается, когда новый сотрудник выйдет на работу, а значит, с какого месяца он попадает в ФОТ.
+              {hist.name ? " Сроки пересчитаны по Вашей истории найма." : " Сейчас сроки взяты из демо-истории; после загрузки Вашей истории найма таблица пересчитается."}
+            </p>
             <div className="max-h-80 overflow-auto">
               <table className="num w-full text-sm">
                 <thead className="sticky top-0 bg-card text-xs text-muted-foreground">
@@ -681,8 +682,7 @@ function Dashboard() {
             <p className="px-3 py-2 text-xs text-muted-foreground">Если в истории меньше {S.min_history} закрытых позиций грейда, срок берётся по умолчанию</p>
           </details>
 
-          <p><b>Excel-модель:</b> <a className="link" href="vacancy-calendar-model.xlsx" download>скачать</a>. Тот же расчёт в формулах, позиция за позицией, на демо-данных и настройках по умолчанию. Ваши файлы и значения, введённые на странице, в неё не попадают.</p>
-          <p><b>Как считаем:</b> <a className="link" href="method.html">метод по шагам</a></p>
+          <p><b>Excel-модель:</b> <a className="link" href="vacancy-calendar-model.xlsx" download>скачать</a>. В ней тот же расчёт, что на странице, формулами по каждой позиции, чтобы можно было проверить любую цифру. Модель собрана на демо-данных: Ваши файлы и изменённые на странице вводные в неё не попадают.</p>
         </div>
       </details>
 
