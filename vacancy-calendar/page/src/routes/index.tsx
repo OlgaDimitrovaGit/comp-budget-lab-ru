@@ -92,14 +92,14 @@ function ThemeToggle() {
 function Kpi({ label, value, target, note }: { label: string; value: number; target: number; note?: string }) {
   const gap = value - target;
   const over = cents(gap) > 0;
-  const zero = cents(gap) === 0;
+  const zero = mln(gap) === 0;
   return (
     <div className="panel relative overflow-hidden p-4 transition-shadow hover:shadow-md">
       <span className={`absolute inset-y-0 left-0 w-1 ${over ? "bg-destructive" : "bg-good"}`} />
       <div className="text-xs text-muted-foreground sm:text-sm">{label}</div>
       <div className="num mt-2 text-2xl font-semibold tracking-tight @3xl:text-3xl">{rubM(value)}</div>
-      <div className={`num mt-1 text-xs font-medium sm:text-sm ${over ? "text-destructive" : zero ? "text-muted-foreground" : "text-good"}`}>
-        {zero ? "в точности по лимиту" : `${gap > 0 ? "▲" : "▼"} ${rubM(gap, { sign: true })} к лимиту`}
+      <div className={`num mt-1 text-xs font-medium sm:text-sm ${over ? "text-destructive" : "text-good"}`}>
+        {`${zero ? "" : gap > 0 ? "▲ " : "▼ "}${rubM(gap, { sign: true })} к лимиту`}
       </div>
       {note && <div className="mt-1 text-xs text-muted-foreground">{note}</div>}
     </div>
@@ -568,7 +568,7 @@ function Dashboard() {
         </aside>
 
         <main className="@container min-w-0 space-y-5">
-          <Section title="ФОТ 2027 года против лимита">
+          <Section title="ФОТ 2027 года vs лимит">
             <p className="mb-4 text-sm leading-relaxed sm:text-base">{verdict}</p>
             <div className="grid grid-cols-1 gap-3 @xl:grid-cols-3">
               <Kpi label="Заявлено бизнесом" value={r.total_requested} target={r.target} />

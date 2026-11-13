@@ -284,6 +284,9 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
   function tysSigned(v) {
     return (v >= 0 ? "+" : "−") + tys(Math.abs(v));
   }
+  function mlnSigned(v) {
+    return (v >= 0 ? "+" : "−") + mln(Math.abs(v));
+  }
 
   // ---- Roll-up -------------------------------------------------------
   function aggregate(rows, factMonths) {
@@ -389,11 +392,10 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
       { label: lastFull + ", факт", sub: "Последний закрытый месяц",
         plan: t.augP, big: t.augF,
         dev: t.augF - t.augP, pct: devAug, fmt: mln },
-      { label: "Факт с начала года",
-        sub: "Факт " + D.factMonths + "M YTD",
+      { label: "Факт " + D.factMonths + "M YTD",
         plan: t.p8,
         big: t.f8, dev: t.f8 - t.p8, pct: dev8, fmt: mln },
-      { label: "Ожидаемое исполнение за год", sub: "Прогноз 12M YTD",
+      { label: "Прогноз 12M YTD",
         plan: t.pY, big: t.eY,
         dev: t.eY - t.pY, pct: devY, fmt: mln }
     ];
@@ -407,17 +409,19 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     // Lovable "alert" card, watch zone - its neutral card, under - positive.
     var CARD = { err: " metric-card-alert", warn: "", ok: " metric-card-ok" };
     var BADGE = { err: "variance-badge-negative", warn: "variance-badge", ok: "variance-badge-positive" };
+    // The gap to plan in money, coloured like the badge so it reads at a glance.
+    var DEV = { err: "text-negative", warn: "text-foreground", ok: "text-positive" };
     document.getElementById("cards").innerHTML = cards.map(function (c) {
       var st = statusOf(c.pct, state.threshold);
       return '<article class="metric-card' + CARD[st] + ' is-' + st + '">'
         + '<p class="text-xs font-bold uppercase text-foreground">' + c.label + '</p>'
-        + '<p class="mt-0.5 text-xs text-muted-foreground">' + c.sub + '</p>'
+        + (c.sub ? '<p class="mt-0.5 text-xs text-muted-foreground">' + c.sub + '</p>' : '')
         + '<div class="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">'
         + '<strong class="font-heading text-3xl font-bold tabular-nums whitespace-nowrap sm:text-[34px]">' + c.fmt(c.big) + '</strong>'
         + '<span class="' + BADGE[st] + ' is-' + st + '">' + arrowOf(c.pct) + ' ' + pct(c.pct) + '</span>'
         + '</div>'
         + '<p class="mt-2 text-xs tabular-nums text-muted-foreground">план ' + c.fmt(c.plan)
-        + ' · ' + tysSigned(c.dev) + '</p>'
+        + ' · <span class="text-sm font-semibold ' + DEV[st] + '">' + mlnSigned(c.dev) + '</span></p>'
         + '</article>';
     }).join("");
 
