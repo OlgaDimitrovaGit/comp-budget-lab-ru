@@ -3,7 +3,7 @@ import { Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 const MINUS = '−';
 export const rub = (n: number) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(Math.round(n)).replace('-', MINUS);
-export const million = (n: number) => `${n < 0 ? MINUS : ''}${(Math.abs(n) / 1e6).toFixed(2).replace('.', ',')} млн ₽`;
+export const million = (n: number, digits = 2) => `${n < 0 ? MINUS : ''}${(Math.abs(n) / 1e6).toFixed(digits).replace('.', ',')} млн ₽`;
 /** Explicit sign: +1,50 млн ₽, −1,50 млн ₽; zero without a sign. */
 export const signed = (s: string, n: number) => (n > 0 ? '+' : '') + s;
 export function Detail({ title, label, children }: { title?: string; label?: string; children: ReactNode }) {

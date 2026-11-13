@@ -58,7 +58,7 @@ def engine(employees, bands, settings):
 
 
 def m(x):
-    return f"{x / 1e6:.2f} млн ₽".replace(".", ",")
+    return f"{x / 1e6:.1f} млн ₽".replace(".", ",")
 
 
 def kpis(p):
@@ -77,7 +77,7 @@ with sync_playwright() as pw:
     demo = engine(DEMO, RANGES, {})
     v = kpis(p)
     check("demo: 2027 cost = engine", v[0] == m(demo["total"]), f"{v[0]} vs {m(demo['total'])}")
-    check("demo: merit % = engine", v[2] == f"{demo['pct']:.2f}%".replace(".", ","), f"{v[2]}")
+    check("demo: merit % = engine", v[2] == f"{demo['pct']:.1f}%".replace(".", ","), f"{v[2]}")
     check("demo: headcount label", f"сотрудников: {demo['n']}" in page_text(p, ".source-label"))
 
     # parameters recalculate; January: both cards equal
@@ -91,7 +91,7 @@ with sync_playwright() as pw:
     p.get_by_label("Целевой бюджет повышения", exact=True).fill("3,5")
     j = engine(DEMO, RANGES, {"pool_pct": 3.5})
     j35 = engine(DEMO, RANGES, {"pool_pct": 3.5})
-    check("target merit increase with a comma recalculates", f"{j35['pct'] - 3.5:+.2f}".replace(".", ",").replace("-", "−") + " п.п. к цели" in page_text(p, ".kpi-groups"), page_text(p, ".kpi-groups")[:300])
+    check("target merit increase with a comma recalculates", f"{j35['pct'] - 3.5:+.1f}".replace(".", ",").replace("-", "−") + " п.п. к цели" in page_text(p, ".kpi-groups"), page_text(p, ".kpi-groups")[:300])
     check("target merit increase: cost unchanged by target", kpis(p)[0] == m(j["total"]))
     p.get_by_label("Целевой бюджет повышения", exact=True).fill("4.0")
     p.get_by_label("Потолок повышения", exact=True).select_option("Без ограничения")
