@@ -1,5 +1,5 @@
 export const MINUS = "−";
-const NBSP = " ";
+const NBSP = " ";
 
 /** Whole millions as shown on the page: 113.26M -> 113. */
 export const mln = (v: number) => Math.round(v / 1e6);

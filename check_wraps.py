@@ -4,7 +4,7 @@ Reads the real line boxes from the browser at 390, 900, 1000, 1100 and 1280 px,
 not the source text: only measurement shows where a line actually wrapped.
   - a line must not end on a short word that holds onto the next one
     (the list is SHORT in nbsp.mjs, the build step that prevents it);
-  - no break inside a number (17 000), between a year and "год", or inside
+  - no break inside a number (17 000), between a year and "год", between a number and its unit (млн ₽), or inside
     a phrase from PHRASES in nbsp.mjs;
   - a block of four or more words must not end on a single word.
 Blocks holding a form field are skipped: the field sits between the words.
@@ -44,7 +44,7 @@ JS = r"""([holds, phrases]) => {
     lines.slice(0, -1).forEach((l, i) => { const last = l.ws[l.ws.length-1].toLowerCase().replace(/[«(]/g,'');
       if (holds.includes(last)) out.push(name + ' | line ends on «' + last + '»: ' + txt[i]); });
     lines.slice(0, -1).forEach((l, i) => { const a = l.ws[l.ws.length-1], z = lines[i+1].ws[0];
-      if ((/\d$/.test(a) && /^\d{3}(?!\d)/.test(z)) || (/^\d{4}$/.test(a) && /^год/i.test(z)) || phrases.some(ph => ph.includes(a + ' ' + z)))
+      if ((/\d$/.test(a) && /^\d{3}(?!\d)/.test(z)) || (/^\d{4}$/.test(a) && /^год/i.test(z)) || ((/\d$/.test(a) || /^(млн|тыс\.)$/.test(a)) && /^(млн|тыс\.|₽|%)/.test(z)) || phrases.some(ph => ph.includes(a + ' ' + z)))
         out.push(name + ' | split «' + a + ' / ' + z + '»: ' + txt[i]); });
     if (words.length >= 4 && !el.closest('th,td') && lines[lines.length-1].ws.length === 1 && !/^[\d\s.,%₽–—-]+$/.test(lines[lines.length-1].ws[0])) out.push(name + ' | last line one word: ' + txt[txt.length-1]);
   }

@@ -23,10 +23,12 @@ const RE = new RegExp(
 // has digits separated by spaces, and a no-break space there breaks the icon.
 const THOUSANDS = /(?<=\d) (?=\d{3}(?!\d)(?:[  ]\d{3}(?!\d))*[  ]*[а-яё₽%<])/giu;
 const YEAR = /(?<=\b\d{4}) (?=год)/gu;
+// "113 млн ₽", "82 тыс. ₽", "5 %": a unit never leaves its number.
+const UNIT = /(?<=\d|млн|тыс\.) (?=(?:млн|тыс\.|₽|%))/gu;
 
 export function glue(text) {
   for (const ph of PHRASES) text = text.split(ph).join(ph.replace(/ /g, ' '));
-  return text.replace(RE, '$1 ').replace(THOUSANDS, ' ').replace(YEAR, ' ');
+  return text.replace(RE, '$1 ').replace(THOUSANDS, ' ').replace(YEAR, ' ').replace(UNIT, ' ');
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
