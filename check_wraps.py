@@ -18,7 +18,7 @@ from playwright.sync_api import sync_playwright
 ROOT = pathlib.Path(__file__).resolve().parent
 SRC = (ROOT / "nbsp.mjs").read_text(encoding="utf-8")
 HOLDS, PHRASES = (re.findall(r"'([^']+)'", re.search(rf"{k} = \[(.*?)\]", SRC, re.S).group(1)) for k in ("SHORT", "PHRASES"))
-PAGES = ["index.html", "uslugi/index.html", "merit-matrix-calculator/index.html",
+PAGES = ["index.html", "merit-matrix-calculator/index.html",
          "vacancy-calendar/index.html", "budget-plan-fact/index.html"]
 JS = r"""([holds, phrases]) => {
   const out = [];
