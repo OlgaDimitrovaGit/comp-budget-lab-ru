@@ -29,7 +29,7 @@
     <p class="lede" id="sub" style="margin-top:18px"></p>
   </header>
 
-  <section aria-label="Итоги по ФОТ" class="cards grid gap-4 md:grid-cols-3" id="cards"></section>
+  <section aria-label="Итоги по ФОТ, млн ₽" class="cards grid gap-4 md:grid-cols-3" id="cards"></section>
 
   <section class="comment-band" id="note" hidden>
     <div class="min-w-0 sm:flex sm:gap-5">
@@ -187,9 +187,6 @@
   function pct(v) {
     return (v >= 0 ? "+" : "−") + num(Math.abs(v), 1) + "%";
   }
-  function mln(v) {
-    return num(v / 1e6, 1) + NB + "млн" + NB + "₽";
-  }
   function tys(v) {
     return num(Math.round(v / 1e3), 0) + NB + "тыс." + NB + "₽";
   }
@@ -202,12 +199,12 @@
   function mlnChartBare(v) {
     return num(v / 1e6, 2);
   }
-  // Millions WITHOUT the unit, for table cells. The unit is already carried in
-  // the group heading (th .unit), and repeating it in every cell eats into the
-  // width: at c-val 15% the real field is ~149px, and a longer string hits
-  // overflow:hidden - the number is silently truncated with an ellipsis. The
-  // rule: the unit is set apart from the number and is not repeated in every
-  // cell.
+  // Millions WITHOUT the unit, for table cells and summary cards. The unit is
+  // already carried in the group heading (th .unit) and, for the cards, in the
+  // page caption. Repeating it in every cell eats into the width: at c-val 15%
+  // the real field is ~149px, and a longer string hits overflow:hidden - the
+  // number is silently truncated with an ellipsis. The rule: the unit is set
+  // apart from the number and is not repeated in every cell.
   function mlnBare(v) {
     return num(v / 1e6, 1);
   }
@@ -215,7 +212,7 @@
     return (v >= 0 ? "+" : "−") + tys(Math.abs(v));
   }
   function mlnSigned(v) {
-    return (v >= 0 ? "+" : "−") + mln(Math.abs(v));
+    return (v >= 0 ? "+" : "−") + mlnBare(Math.abs(v));
   }
 
   // ---- Roll-up -------------------------------------------------------
@@ -298,36 +295,37 @@
     var last = MONTHS[D.factMonths - 1];
     var lastFull = MONTH_FULL[last] || last;
 
-    // The caption states what is already actual and what is still forecast.
-    // It used to read awkwardly ("actual through August, forecast to
-    // December"); here the period speaks for itself.
+    // The caption states which months are actual and which are still forecast,
+    // in full month names. It follows the data: an uploaded CSV can close any
+    // month, and a closed year has no forecast part at all. It also carries the
+    // unit for the summary cards right below it, so the cards show bare numbers.
     // "N departments" was removed from the caption: content must match the
     // purpose of the page. The HR director this dashboard is built for
     // already knows the make-up of their own area of responsibility, and the
     // dashboard is not obliged to count their own departments for them.
+    function monthName(i) { return (MONTH_FULL[MONTHS[i]] || MONTHS[i]).toLowerCase(); }
+    function monthSpan(from, to) {
+      return from === to ? monthName(from) : monthName(from) + " – " + monthName(to);
+    }
     document.getElementById("sub").textContent =
-      "Факт " + D.factMonths + "M YTD" + (D.factMonths < 12
-        ? " · прогноз " + MONTHS[D.factMonths] + "–дек" : "");
+      monthSpan(0, D.factMonths - 1) + " – факт" + (D.factMonths < 12
+        ? ", " + monthSpan(D.factMonths, 11) + " – прогноз" : "")
+      + " · млн" + NB + "₽";
 
     var devAug = (t.augF - t.augP) / t.augP * 100;
     var dev8 = (t.f8 - t.p8) / t.p8 * 100;
     var devY = (t.eY - t.pY) / t.pY * 100;
 
-    // Heading split in two, following the Insights layout: the label names the
-    // figure, the subtitle names the period it covers. The wording of both is
-    // taken from there as well ("Latest closed month", "Actuals + forecast").
-    // Only the text is restructured - every value below is the same expression
-    // as before.
     var cards = [
-      { label: lastFull + ", факт", sub: "Последний закрытый месяц",
+      { label: lastFull + ", факт",
         plan: t.augP, big: t.augF,
-        dev: t.augF - t.augP, pct: devAug, fmt: mln },
+        dev: t.augF - t.augP, pct: devAug },
       { label: "Факт " + D.factMonths + "M YTD",
         plan: t.p8,
-        big: t.f8, dev: t.f8 - t.p8, pct: dev8, fmt: mln },
+        big: t.f8, dev: t.f8 - t.p8, pct: dev8 },
       { label: "Прогноз 12M YTD",
         plan: t.pY, big: t.eY,
-        dev: t.eY - t.pY, pct: devY, fmt: mln }
+        dev: t.eY - t.pY, pct: devY }
     ];
 
     // A KPI-widget style card: heading in plain text, the large number on the
@@ -345,12 +343,11 @@
       var st = statusOf(c.pct, state.threshold);
       return '<article class="metric-card' + CARD[st] + ' is-' + st + '">'
         + '<p class="text-xs font-bold uppercase text-foreground">' + c.label + '</p>'
-        + (c.sub ? '<p class="mt-0.5 text-xs text-muted-foreground">' + c.sub + '</p>' : '')
         + '<div class="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">'
-        + '<strong class="font-heading text-3xl font-bold tabular-nums whitespace-nowrap sm:text-[34px]">' + c.fmt(c.big) + '</strong>'
+        + '<strong class="font-heading text-3xl font-bold tabular-nums whitespace-nowrap sm:text-[34px]">' + mlnBare(c.big) + '</strong>'
         + '<span class="' + BADGE[st] + ' is-' + st + '">' + arrowOf(c.pct) + ' ' + pct(c.pct) + '</span>'
         + '</div>'
-        + '<p class="mt-2 text-xs tabular-nums text-muted-foreground">план ' + c.fmt(c.plan)
+        + '<p class="mt-2 text-xs tabular-nums text-muted-foreground">план ' + mlnBare(c.plan)
         + ' · <span class="text-sm font-semibold ' + DEV[st] + '">' + mlnSigned(c.dev) + '</span></p>'
         + '</article>';
     }).join("");
